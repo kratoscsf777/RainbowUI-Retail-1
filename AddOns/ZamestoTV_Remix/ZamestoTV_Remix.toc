@@ -1,0 +1,40 @@
+## Interface: 100207
+## Title: ZamestoTV Remix
+## Title-zhTW: ZamestoTV 混搭再造
+## Notes: Achievement locations for Remix: Mists of Pandaria
+## Notes-zhTW: 潘達利亞混搭再造的稀有成就寶箱等位置顯示，須配合HandyNote。
+## Author: ZamestoTV
+## IconTexture: Interface\AddOns\ZamestoTV_GoldFarm\Icons\goblin
+## Version: 3.7.5
+## DefaultState: enabled
+## X-Category: Map
+## SavedVariables: HandyNotes_GoldDB
+## RequiredDeps: HandyNotes
+## OptionalDeps: 
+## DefaultState: Enabled
+## LoadOnDemand: 0
+## SavedVariables: ZammCountdownSettings
+## SavedVariables: BronzeTrackerDB
+## SavedVariables: ZorROpenableScanEnabled
+## SavedVariablesPerCharacter: 
+## X-Category-zhTW: 地圖
+
+#@no-lib-strip@
+embeds.xml
+#@end-no-lib-strip@
+
+Localization/zhTW.lua
+Localization/enUS.lua
+
+handler.lua
+config.lua
+gold.lua
+timer.lua
+Tooltip.lua
+Threads.lua
+AutoQuest.lua
+Tooltip2.lua
+Tooltip3.lua
+Track.lua
+Tmog.lua
+bron.lua

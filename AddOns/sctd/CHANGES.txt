@@ -1,0 +1,38 @@
+------------------------------------------------------------------------
+r41 | frozn45 | 2024-08-19 19:14:47 +0000 (Mon, 19 Aug 2024) | 1 line
+Changed paths:
+   M /trunk/sctd_options/options.lua
+
+- added necessary changes for latest expansion TWW
+------------------------------------------------------------------------
+r40 | frozn45 | 2024-08-19 19:04:25 +0000 (Mon, 19 Aug 2024) | 2 lines
+Changed paths:
+   M /trunk/sctd/sctd.toc
+   M /trunk/sctd/sctd_Cata.toc
+   M /trunk/sctd/sctd_Vanilla.toc
+   M /trunk/sctd_options/sctd_options.toc
+   M /trunk/sctd_options/sctd_options_Cata.toc
+   M /trunk/sctd_options/sctd_options_Vanilla.toc
+
+- updated TOC to 11.0.2
+- classic era: updated TOC to 1.15.3
+------------------------------------------------------------------------
+r39 | frozn45 | 2024-08-19 19:03:15 +0000 (Mon, 19 Aug 2024) | 1 line
+Changed paths:
+   M /trunk/sctd/sctd.lua
+   M /trunk/sctd_options/options.lua
+
+- added necessary changes for latest expansion TWW
+------------------------------------------------------------------------
+r38 | frozn45 | 2024-07-08 19:10:27 +0000 (Mon, 08 Jul 2024) | 1 line
+Changed paths:
+   M /trunk/sctd/sctd.toc
+   M /trunk/sctd/sctd_Cata.toc
+   M /trunk/sctd/sctd_Vanilla.toc
+   M /trunk/sctd_options/sctd_options.toc
+   M /trunk/sctd_options/sctd_options_Cata.toc
+   M /trunk/sctd_options/sctd_options_Vanilla.toc
+
+- bumped version to v10.2_7
+------------------------------------------------------------------------
+

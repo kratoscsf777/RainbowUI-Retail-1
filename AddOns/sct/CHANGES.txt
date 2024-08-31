@@ -1,0 +1,76 @@
+------------------------------------------------------------------------
+r66 | frozn45 | 2024-08-19 19:15:02 +0000 (Mon, 19 Aug 2024) | 1 line
+Changed paths:
+   M /trunk/sct_options/options.lua
+
+- added necessary changes for latest expansion TWW
+------------------------------------------------------------------------
+r65 | frozn45 | 2024-08-19 18:53:28 +0000 (Mon, 19 Aug 2024) | 2 lines
+Changed paths:
+   M /trunk/sct_options/sct_options.toc
+   M /trunk/sct_options/sct_options_Cata.toc
+   M /trunk/sct_options/sct_options_Vanilla.toc
+
+- updated TOC to 11.0.2
+- classic era: updated TOC to 1.15.3
+------------------------------------------------------------------------
+r64 | frozn45 | 2024-08-19 18:52:35 +0000 (Mon, 19 Aug 2024) | 2 lines
+Changed paths:
+   M /trunk/sct/sct.toc
+   M /trunk/sct/sct_Cata.toc
+   M /trunk/sct/sct_Vanilla.toc
+
+- updated TOC to 11.0.2
+- classic era: updated TOC to 1.15.3
+------------------------------------------------------------------------
+r63 | frozn45 | 2024-08-19 18:51:41 +0000 (Mon, 19 Aug 2024) | 1 line
+Changed paths:
+   M /trunk/sct/libs/AceAddon-3.0/AceAddon-3.0.lua
+   M /trunk/sct/libs/AceAddon-3.0/AceAddon-3.0.xml
+   M /trunk/sct/libs/AceConsole-3.0/AceConsole-3.0.lua
+   M /trunk/sct/libs/AceConsole-3.0/AceConsole-3.0.xml
+   M /trunk/sct/libs/AceDB-3.0/AceDB-3.0.lua
+   M /trunk/sct/libs/AceDB-3.0/AceDB-3.0.xml
+   M /trunk/sct/libs/AceEvent-3.0/AceEvent-3.0.lua
+   M /trunk/sct/libs/AceEvent-3.0/AceEvent-3.0.xml
+   M /trunk/sct/libs/AceHook-3.0/AceHook-3.0.lua
+   M /trunk/sct/libs/AceHook-3.0/AceHook-3.0.xml
+   M /trunk/sct/libs/AceTimer-3.0/AceTimer-3.0.lua
+   M /trunk/sct/libs/AceTimer-3.0/AceTimer-3.0.xml
+   M /trunk/sct/libs/CallbackHandler-1.0/CallbackHandler-1.0.lua
+   M /trunk/sct/libs/CallbackHandler-1.0/CallbackHandler-1.0.xml
+   M /trunk/sct/libs/LibSharedMedia-3.0/CHANGES.txt
+   M /trunk/sct/libs/LibSharedMedia-3.0/CallbackHandler-1.0/CallbackHandler-1.0.lua
+   M /trunk/sct/libs/LibSharedMedia-3.0/LibSharedMedia-3.0/LibSharedMedia-3.0.lua
+   M /trunk/sct/libs/LibSharedMedia-3.0/LibSharedMedia-3.0/lib.xml
+   M /trunk/sct/libs/LibSharedMedia-3.0/LibSharedMedia-3.0.toc
+   D /trunk/sct/libs/LibSharedMedia-3.0/LibSharedMedia-3.0_Cata.toc
+   D /trunk/sct/libs/LibSharedMedia-3.0/LibSharedMedia-3.0_TBC.toc
+   D /trunk/sct/libs/LibSharedMedia-3.0/LibSharedMedia-3.0_Vanilla.toc
+   D /trunk/sct/libs/LibSharedMedia-3.0/LibSharedMedia-3.0_Wrath.toc
+   M /trunk/sct/libs/LibSharedMedia-3.0/LibStub/LibStub.lua
+   M /trunk/sct/libs/LibSharedMedia-3.0/lib.xml
+   M /trunk/sct/libs/LibStub/LibStub.lua
+
+- updated libs
+------------------------------------------------------------------------
+r62 | frozn45 | 2024-08-19 18:48:29 +0000 (Mon, 19 Aug 2024) | 1 line
+Changed paths:
+   M /trunk/sct/sct.lua
+   M /trunk/sct/sct_events.lua
+   M /trunk/sct_options/options.lua
+
+- added necessary changes for latest expansion TWW
+------------------------------------------------------------------------
+r61 | frozn45 | 2024-07-08 19:11:25 +0000 (Mon, 08 Jul 2024) | 1 line
+Changed paths:
+   M /trunk/sct/sct.toc
+   M /trunk/sct/sct_Cata.toc
+   M /trunk/sct/sct_Vanilla.toc
+   M /trunk/sct_options/sct_options.toc
+   M /trunk/sct_options/sct_options_Cata.toc
+   M /trunk/sct_options/sct_options_Vanilla.toc
+
+- bumped version to v10.2_7
+------------------------------------------------------------------------
+

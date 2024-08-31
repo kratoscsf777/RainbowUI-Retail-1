@@ -1,0 +1,17 @@
+## Interface: 110000
+## Title: AdiBags - Shadowlands
+## Version: 2.0.13
+## Author: Zottelchen
+## Notes: Items from the Shadowlands expansion.
+## IconTexture: Interface\AddOns\AdiBags_Shadowlands\icon
+## Dependencies: AdiBags
+## X-Date: 2024-08-01T19:49:41Z
+## X-Revision: 108
+## X-Category: Bags & Inventory
+## X-Curse-Project-ID: 423029
+## X-WoWI-ID: 25821
+## X-Wago-ID: q96d9OKO
+
+Localization.lua
+AdiBags_Shadowlands.lua
+

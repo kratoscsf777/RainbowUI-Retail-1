@@ -1,0 +1,16 @@
+## Title: AdiBags - Bears Herbs
+## Interface: 100207
+## X-Interface: 100207
+## Version: 2024.4.23
+## Author: Bearesquishy
+## X-License: MIT
+## X-Curse-Project-ID: 446519
+## X-Wago-ID: qv63lDKb
+## IconTexture: Interface\Icons\Ui-gearmanager-itemintobag
+## DefaultState: enabled
+## Dependencies: AdiBags
+
+expansion.lua
+SL-db.lua
+DF-db.lua
+core.lua

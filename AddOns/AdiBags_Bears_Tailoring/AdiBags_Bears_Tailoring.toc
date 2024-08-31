@@ -1,0 +1,18 @@
+## Interface: 100207
+## X-Interface: 100207
+## Title: AdiBags - Bears Tailoring
+## Version: 2024.4.23
+## Author: BearLeeAble
+## X-License: MIT
+## X-Curse-Project-ID: 446531
+## X-Wago-ID: 7x619p61
+## IconTexture: Interface\Icons\Ui-gearmanager-itemintobag
+## DefaultState: enabled
+## Dependencies: AdiBags
+
+expansion.lua
+Global-dbs.lua
+DF-Global.lua
+SL-db.lua
+DF-db.lua
+core.lua

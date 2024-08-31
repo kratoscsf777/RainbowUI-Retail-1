@@ -1,0 +1,14 @@
+## Interface: 110002
+## Title: IceHUD |cff7fff7f-Options-|r
+## Author: Parnic
+## Version: v1.15.8
+## Notes: Configuration options for IceHUD
+## OptionalDeps: AceGUI-3.0-SharedMediaWidgets
+## Dependencies: IceHUD
+## LoadOnDemand: 1
+## IconTexture: Interface\Icons\Spell_Frost_Frost
+
+Json.lua
+JsonDecode.lua
+JsonEncode.lua
+Options.lua

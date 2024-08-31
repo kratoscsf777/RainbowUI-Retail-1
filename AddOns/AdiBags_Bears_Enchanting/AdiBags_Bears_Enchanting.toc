@@ -1,0 +1,18 @@
+## Interface: 100207
+## X-Interface: 100207
+## Title: AdiBags - Bears Enchanting
+## Version: 2024.4.23
+## Author: Bearesquishy
+## X-License: MIT
+## X-Curse-Project-ID: 446515
+## X-Wago-ID: Rn6VdEGd
+## IconTexture: Interface\Icons\Ui-gearmanager-itemintobag
+## DefaultState: enabled
+## Dependencies: AdiBags
+
+expansion.lua
+Global-dbs.lua
+DF-Global.lua
+SL-db.lua
+DF-db.lua
+core.lua
