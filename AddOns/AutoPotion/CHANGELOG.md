@@ -1,6 +1,6 @@
 # Auto Potion
 
-## [3.5.12](https://github.com/ollidiemaus/AutoPotion/tree/3.5.12) (2024-08-30)
-[Full Changelog](https://github.com/ollidiemaus/AutoPotion/compare/3.5.11...3.5.12) [Previous Releases](https://github.com/ollidiemaus/AutoPotion/releases)
+## [3.6.1](https://github.com/ollidiemaus/AutoPotion/tree/3.6.1) (2024-10-02)
+[Full Changelog](https://github.com/ollidiemaus/AutoPotion/compare/3.6.0...3.6.1) [Previous Releases](https://github.com/ollidiemaus/AutoPotion/releases)
 
-- removed duplicate demonic healthstone  
+- classic version bump  

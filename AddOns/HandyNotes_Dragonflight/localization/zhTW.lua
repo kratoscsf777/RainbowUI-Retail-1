@@ -86,7 +86,6 @@ L['options_icons_signal_transmitter'] = '龍洞產生器信號發送器'
 L['options_icons_signal_transmitter_desc'] = '顯示 {item:198156} 所需的 {object:關閉的信號發送器} 位置.'
 
 L['rare_14h'] = '此稀有和其他稀有們共用一個14小時的循環, 每30分鐘會重生一隻稀有.\n\n下個可能的重生時間是: {note:%s}'
-L['now'] = '現在'
 L['spawns_at_night'] = '{note:僅在晚上重生 (伺服器時間 18:30 之後)}'
 
 L['elemental_storm'] = '元素風暴'
@@ -1085,8 +1084,8 @@ L['thornbeast_disclaimer'] = '{note:提醒, 每種野獸類型有獨特的 {item
 L['thorn_laden_heart_note_1'] = '從 {location:翡翠夢境} 裡的任意 {npc:雄鹿}, {npc:夢刃豹} 或 {npc:熊} 拾取一個 {item:209860}.'
 L['thorn_laden_heart_note_2'] = '當你有一個 {item:209860} 後, 到 {location:庫爾提拉斯} 的 {location:佐司瓦} 找一隻母鹿 {npc:140044}.'
 
-L['athainne_note_1'] = '{note:{npc:140044} 晚上時會和 {npc:129771} 一起移動, 白天時會在 {locatuon:烏爾法洞穴} 內休息.}\n\n要求 {npc:140044} 使用 {item:209860} 製造 {item:209863}.'
-L['athainne_note_2'] = '當你和 {npc:140044} 說話並取得 {item:209863} 後, 到 {locatuon:烏爾法洞穴} 找 {npc:141159} 求助.'
+L['athainne_note_1'] = '{note:{npc:140044} 晚上時會和 {npc:129771} 一起移動, 白天時會在 {location:烏爾法洞穴} 內休息.}\n\n要求 {npc:140044} 使用 {item:209860} 製造 {item:209863}.'
+L['athainne_note_2'] = '當你和 {npc:140044} 說話並取得 {item:209863} 後, 到 {location:烏爾法洞穴} 找 {npc:141159} 求助.'
 
 L['ulfar_note_1'] = '要求 {npc:149386} 使用 {item:209863} 製造 {item:209866}.'
 L['ulfar_note_2'] = '當你有了 {item:209866}, 回到 {location:翡翠夢境} 找到一個適合轉化儀式的目標.'

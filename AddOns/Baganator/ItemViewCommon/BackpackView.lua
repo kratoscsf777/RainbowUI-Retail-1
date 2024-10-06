@@ -38,6 +38,8 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
   addonTable.Utilities.AddBagSortManager(self) -- self.sortManager
   addonTable.Utilities.AddBagTransferManager(self) -- self.transferManager
 
+  addonTable.Utilities.AddScrollBar(self)
+
   self.tabsPool = addonTable.ItemViewCommon.GetTabButtonPool(self)
 
   addonTable.CallbackRegistry:RegisterCallback("BagCacheAfterNewItemsUpdate",  function(_, character, updatedBags)
@@ -58,7 +60,7 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
         addonTable.Utilities.ApplyVisuals(self)
       end
     elseif tIndexOf(addonTable.Config.ItemButtonsRelayoutSettings, settingName) ~= nil then
-      for _, layout in ipairs(self.Layouts) do
+      for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
       end
       if self:IsVisible() then
@@ -72,8 +74,10 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
           PanelTemplates_SetTab(self, index)
         end
       end
+      self:OnFinished()
     elseif settingName == addonTable.Config.Options.MAIN_VIEW_SHOW_BAG_SLOTS then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
+      self:OnFinished()
     end
   end)
 
@@ -312,6 +316,10 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
   self.lastCharacter = character
   self.isLive = isLive
 
+  addonTable.Utilities.AddGeneralDropSlot(self, function()
+    return Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bags
+  end, Syndicator.Constants.AllBagIndexes)
+
   self.BagSlots:Update(self.lastCharacter, self.isLive)
   local containerInfo = characterData.containerInfo
   self.ToggleBagSlotsButton:SetShown(self.isLive or (containerInfo and containerInfo.bags))
@@ -323,11 +331,7 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
   self.SortButton:SetShown(addonTable.Utilities.ShouldShowSortButton() and isLive)
   self:UpdateTransferButton()
 
-  local sideSpacing, topSpacing = 13, 14
-  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
-    sideSpacing = 8
-    topSpacing = 7
-  end
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
   if self.tabsSetup then -- Not ready immediately on PLAYER_ENTERING_WORLD
     self.Tabs[1]:SetPoint("LEFT", self, "LEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset, 0)
@@ -338,6 +342,28 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
   if self.CurrencyWidget.lastCharacter ~= self.lastCharacter then
     self.CurrencyWidget:UpdateCurrencies(character)
   end
+end
+
+function BaganatorItemViewCommonBackpackViewMixin:OnFinished(character, isLive)
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
+
+  local externalVerticalSpacing = (self.BagSlots:GetHeight() > 0 and (self.BagSlots:GetTop() - self:GetTop()) or 0) + (self.Tabs[1] and self.Tabs[1]:IsShown() and (self:GetBottom() - self.Tabs[1]:GetBottom() + 5) or 0)
+
+  local additionalPadding = 0
+  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
+    additionalPadding = 1
+  end
+
+  self:SetSize(
+    self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
+    math.min(self.Container:GetHeight() + 74 + additionalPadding + topSpacing / 2 + self.CurrencyWidget:GetExtraHeight(), UIParent:GetHeight() / self:GetScale() - externalVerticalSpacing)
+  )
+
+  self:UpdateScroll(74 + additionalPadding + topSpacing / 2 + externalVerticalSpacing, self:GetScale())
+
+  self:HideExtraTabs()
+
+  self:UpdateAllButtons()
 end
 
 function BaganatorItemViewCommonBackpackViewMixin:CombineStacks(callback)

@@ -4,7 +4,7 @@ BaganatorCategoryViewBankViewWarbandViewMixin = CreateFromMixins(BaganatorItemVi
 function BaganatorCategoryViewBankViewWarbandViewMixin:OnLoad()
   BaganatorItemViewCommonBankViewWarbandViewMixin.OnLoad(self)
 
-  self.Layouts = {}
+  self.Container.Layouts = {}
   self.LiveLayouts = {}
   self.CachedLayouts = {}
 
@@ -13,17 +13,19 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:OnLoad()
   self.LayoutManager:OnLoad()
 
   self:RegisterEvent("CURSOR_CHANGED")
+  self:RegisterEvent("MODIFIER_STATE_CHANGED")
 
   self.labelsPool = CreateFramePool("Button", self, "BaganatorCategoryViewsCategoryButtonTemplate")
   self.sectionButtonPool = addonTable.CategoryViews.GetSectionButtonPool(self)
   self.dividerPool = CreateFramePool("Button", self, "BaganatorBagDividerTemplate")
 
   addonTable.CallbackRegistry:RegisterCallback("ContentRefreshRequired",  function()
+    self.searchToApply = true
     self.LayoutManager:FullRefresh()
-    for _, layout in ipairs(self.Layouts) do
+    for _, layout in ipairs(self.Container.Layouts) do
       layout:RequestContentRefresh()
     end
-    if self:IsVisible() and self.lastCharacter ~= nil then
+    if self:IsVisible() then
       self:GetParent():UpdateView()
     end
   end)
@@ -36,7 +38,7 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:OnLoad()
         self:GetParent():UpdateView()
       end
     elseif settingName == addonTable.Config.Options.SORT_METHOD then
-      for _, layout in ipairs(self.Layouts) do
+      for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
       end
       self.LayoutManager:SettingChanged(settingName)
@@ -44,6 +46,7 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:OnLoad()
         self:GetParent():UpdateView()
       end
     elseif settingName == addonTable.Config.Options.JUNK_PLUGIN or settingName == addonTable.Config.Options.UPGRADE_PLUGIN then
+      self.searchToApply = true
       self.LayoutManager:SettingChanged(settingName)
       if self:IsVisible() then
         self:GetParent():UpdateView()
@@ -54,7 +57,7 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:OnLoad()
   addonTable.CallbackRegistry:RegisterCallback("CategoryAddItemStart", function(_, fromCategory, itemID, itemLink, addedDirectly)
     self.addToCategoryMode = fromCategory
     self.addedToFromCategory = addedDirectly == true
-    if self:IsVisible() then
+    if self:IsVisible() and addonTable.CategoryViews.Utilities.GetAddButtonsState() then
       self:GetParent():UpdateView()
     end
   end)
@@ -66,6 +69,8 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:OnEvent(eventName, ...)
     if self:IsVisible() then
       self:GetParent():UpdateView()
     end
+  elseif eventName == "MODIFIER_STATE_CHANGED" and self.addToCategoryMode and (addonTable.CategoryViews.Utilities.GetAddButtonsState() or self.LayoutManager.showAddButtons) and C_Cursor.GetCursorItem() then
+    self:GetParent():UpdateView()
   end
 end
 
@@ -90,7 +95,7 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:ApplySearch(text)
     return
   end
 
-  for _, layout in ipairs(self.Layouts) do
+  for _, layout in ipairs(self.Container.Layouts) do
     if layout:IsVisible() then
       layout:ApplySearch(text)
     end
@@ -113,11 +118,7 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:ShowTab(tabIndex, isLive)
     return
   end
 
-  local sideSpacing, topSpacing = 13, 14
-  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
-    sideSpacing = 8
-    topSpacing = 7
-  end
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
   self.isGrouping = not self.isLive and addonTable.Config.Get(addonTable.Config.Options.CATEGORY_ITEM_GROUPING)
   self.splitStacksDueToTransfer = self.isLive
@@ -125,12 +126,6 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:ShowTab(tabIndex, isLive)
   if self.addToCategoryMode and C_Cursor.GetCursorItem() == nil then
     self.addToCategoryMode = false
   end
-
-  local buttonPadding = 0
-  if self.isLive then
-    buttonPadding = buttonPadding + 25
-  end
-
 
   local warbandData = Syndicator.API.GetWarband(1)
   local bagData, bagTypes, bagIndexes = {}, {}
@@ -148,10 +143,11 @@ function BaganatorCategoryViewBankViewWarbandViewMixin:ShowTab(tabIndex, isLive)
     bagIndexes = Syndicator.Constants.AllWarbandIndexes
   end
   self.LayoutManager:Layout(bagData, bagWidth, bagTypes, bagIndexes, sideSpacing, topSpacing, function(maxWidth, maxHeight)
-    self:SetSize(
-      math.max(addonTable.CategoryViews.Constants.MinWidth, self:GetButtonsWidth(sideSpacing), maxWidth + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2),
-      maxHeight + 75 + topSpacing / 2 + buttonPadding
+    self.Container:SetSize(
+      math.max(addonTable.CategoryViews.Constants.MinWidth, self:GetButtonsWidth(sideSpacing), maxWidth),
+      maxHeight
     )
+    self:OnFinished()
 
     local searchText = self:GetParent().SearchWidget.SearchBox:GetText()
     if self.searchToApply then

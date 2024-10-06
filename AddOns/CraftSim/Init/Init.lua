@@ -121,8 +121,8 @@ function CraftSim.INIT:HookToEvent()
 			local professionInfo = C_TradeSkillUI.GetChildProfessionInfo()
 			local professionRecipeIDs = C_TradeSkillUI.GetAllRecipeIDs()
 
-			--CraftSim.INIT:TriggerRecipeOperationInfoLoadForProfession(professionRecipeIDs,
-			--	professionInfo.profession)
+			CraftSim.INIT:TriggerRecipeOperationInfoLoadForProfession(professionRecipeIDs,
+				professionInfo.profession)
 			CraftSim.INIT:TriggerModuleUpdate(true)
 
 			local recipeID = recipeInfo.recipeID
@@ -176,11 +176,19 @@ function CraftSim.INIT:InitStaticPopups()
 end
 
 function CraftSim.INIT:InitCraftRecipeHooks()
-	---@param recipeID number
-	---@param amount number?
-	---@param craftingReagentInfoTbl CraftingReagentInfo[]?
-	---@param itemTarget ItemLocationMixin?
-	local function OnCraft(recipeID, amount, craftingReagentInfoTbl, itemTarget)
+	---@class CraftSim.INIT.OnCraftData
+	---@field recipeID RecipeID
+	---@field amount number
+	---@field recipeLevel number?
+	---@field craftingReagentInfoTbl CraftingReagentInfo[]?
+	---@field itemTarget ItemLocationMixin?
+	---@field isEnchant boolean?
+	---@field isOrder boolean?
+	---@field orderID number?
+	---@field concentrating boolean?
+
+	---@param onCraftData CraftSim.INIT.OnCraftData
+	local function OnCraft(onCraftData)
 		-- create a recipeData instance with given info and forward it to the corresponding modules
 		-- isRecraft and isWorkOrder is omitted cause cant know here
 		-- but recrafts have different reagents.. so they wont be recognized by comparison anyway
@@ -192,6 +200,10 @@ function CraftSim.INIT:InitCraftRecipeHooks()
 
 		local print = CraftSim.DEBUG:SetDebugPrint(CraftSim.CONST.DEBUG_IDS.CRAFTQ)
 
+		if C_TradeSkillUI.IsNPCCrafting() or C_TradeSkillUI.IsRuneforging() or C_TradeSkillUI.IsTradeSkillLinked() or C_TradeSkillUI.IsTradeSkillGuild() then
+			return
+		end
+
 		---@type CraftSim.RecipeData
 		local recipeData
 		-- if craftsim did not call the api and we do not have reagents, set it by gui
@@ -202,7 +214,11 @@ function CraftSim.INIT:InitCraftRecipeHooks()
 				isRecraft = CraftSim.INIT.currentRecipeData.isRecraft
 			end
 			-- this means recraft and work order stuff is important
-			recipeData = CraftSim.RecipeData(recipeID, isRecraft, CraftSim.UTIL:IsWorkOrder())
+			recipeData = CraftSim.RecipeData({
+				recipeID = onCraftData.recipeID,
+				isWorkOrder = onCraftData.isOrder,
+				isRecraft = isRecraft,
+			})
 
 			recipeData:SetAllReagentsBySchematicForm()
 			recipeData:SetConcentrationBySchematicForm()
@@ -210,12 +226,18 @@ function CraftSim.INIT:InitCraftRecipeHooks()
 		else
 			print("api was called via craftsim")
 			-- started via craftsim craft queue
-			recipeData = CraftSim.RecipeData(recipeID, isRecraft, CraftSim.UTIL:IsWorkOrder())
-			recipeData:SetReagentsByCraftingReagentInfoTbl(craftingReagentInfoTbl)
+			recipeData = CraftSim.RecipeData({
+				recipeID = onCraftData.recipeID,
+				isWorkOrder = onCraftData.isOrder,
+				isRecraft = isRecraft,
+			})
+			recipeData:SetReagentsByCraftingReagentInfoTbl(onCraftData.craftingReagentInfoTbl)
 			recipeData:SetNonQualityReagentsMax()
 		end
 
 		recipeData:SetEquippedProfessionGearSet()
+
+		recipeData.concentrating = onCraftData.concentrating
 
 		recipeData:Update() -- is this necessary? check again if there are performance problems with that
 
@@ -223,15 +245,40 @@ function CraftSim.INIT:InitCraftRecipeHooks()
 		print(recipeData.reagentData, true)
 
 		CraftSim.CRAFT_RESULTS:OnCraftRecipe(recipeData)
-		CraftSim.CRAFTQ:OnCraftRecipe(recipeData, amount or 1, itemTarget)
+		CraftSim.CRAFTQ:OnCraftRecipe(recipeData, onCraftData.amount, onCraftData.itemTarget)
 	end
 	local function OnRecraft()
 		if CraftSim.INIT.currentRecipeData then
 			CraftSim.CRAFT_RESULTS:OnCraftRecipe(CraftSim.INIT.currentRecipeData)
 		end
 	end
-	hooksecurefunc(C_TradeSkillUI, "CraftRecipe", OnCraft)
-	hooksecurefunc(C_TradeSkillUI, "CraftEnchant", OnCraft)
+	hooksecurefunc(C_TradeSkillUI, "CraftRecipe",
+		function(recipeID, amount, craftingReagentInfoTbl, recipeLevel, orderID, concentrating)
+			---@type CraftSim.INIT.OnCraftData
+			local onCraftData = {
+				recipeID = recipeID,
+				amount = amount or 1,
+				craftingReagentInfoTbl = craftingReagentInfoTbl or {},
+				recipeLevel = recipeLevel,
+				orderID = orderID,
+				isOrder = orderID ~= nil,
+				concentrating = concentrating,
+			}
+			OnCraft(onCraftData)
+		end)
+	hooksecurefunc(C_TradeSkillUI, "CraftEnchant",
+		function(recipeID, amount, craftingReagentInfoTbl, enchantItemLocation, concentrating)
+			---@type CraftSim.INIT.OnCraftData
+			local onCraftData = {
+				recipeID = recipeID,
+				amount = amount or 1,
+				craftingReagentInfoTbl = craftingReagentInfoTbl or {},
+				itemTarget = enchantItemLocation,
+				isEnchant = true,
+				concentrating = concentrating,
+			}
+			OnCraft(onCraftData)
+		end)
 	hooksecurefunc(C_TradeSkillUI, "RecraftRecipe", OnRecraft)
 	hooksecurefunc(C_TradeSkillUI, "RecraftRecipeForOrder", OnRecraft)
 	hooksecurefunc(C_TradeSkillUI, "CraftSalvage", CraftSim.CRAFT_RESULTS.OnCraftSalvage)
@@ -424,9 +471,9 @@ function CraftSim.INIT:HideAllModules(keepControlPanel)
 		CraftSim.CONST.FRAMES.AVERAGE_PROFIT_WO)
 	local topgearFrame = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES, CraftSim.CONST.FRAMES.TOP_GEAR)
 	local topgearFrameWO = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES, CraftSim.CONST.FRAMES.TOP_GEAR_WORK_ORDER)
-	local materialOptimizationFrame = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES,
+	local reagentOptimizationFrame = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES,
 		CraftSim.CONST.FRAMES.REAGENT_OPTIMIZATION)
-	local materialOptimizationFrameWO = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES,
+	local reagentOptimizationFrameWO = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES,
 		CraftSim.CONST.FRAMES.REAGENT_OPTIMIZATION_WORK_ORDER)
 	-- hide control panel and return
 	if not keepControlPanel then
@@ -453,13 +500,18 @@ function CraftSim.INIT:HideAllModules(keepControlPanel)
 	CraftSim.PRICE_DETAILS.frameWO:Hide()
 	CraftSim.COST_OPTIMIZATION.frame:Hide()
 	CraftSim.COST_OPTIMIZATION.frameWO:Hide()
-	materialOptimizationFrame:Hide()
-	materialOptimizationFrameWO:Hide()
+	reagentOptimizationFrame:Hide()
+	reagentOptimizationFrameWO:Hide()
 	-- hide sim mode toggle button
 	CraftSim.SIMULATION_MODE.UI.WORKORDER.toggleButton:Hide()
 	CraftSim.SIMULATION_MODE.UI.NO_WORKORDER.toggleButton:Hide()
 	CraftSim.EXPLANATIONS.frame:Hide()
 	CraftSim.STATISTICS.UI:SetVisible(false)
+
+	CraftSim.CRAFTQ.queueRecipeButton:Hide()
+	CraftSim.CRAFTQ.queueRecipeButtonWO:Hide()
+	CraftSim.CRAFTQ.queueRecipeButtonOptions:Hide()
+	CraftSim.CRAFTQ.queueRecipeButtonOptionsWO:Hide()
 end
 
 function CraftSim.INIT:TriggerModulesByRecipeType()
@@ -477,12 +529,20 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 		CraftSim.CONST.FRAMES.AVERAGE_PROFIT_WO)
 	local topgearFrame = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES, CraftSim.CONST.FRAMES.TOP_GEAR)
 	local topgearFrameWO = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES, CraftSim.CONST.FRAMES.TOP_GEAR_WORK_ORDER)
-	local materialOptimizationFrame = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES,
+	local reagentOptimizationFrame = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES,
 		CraftSim.CONST.FRAMES.REAGENT_OPTIMIZATION)
-	local materialOptimizationFrameWO = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES,
+	local reagentOptimizationFrameWO = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES,
 		CraftSim.CONST.FRAMES.REAGENT_OPTIMIZATION_WORK_ORDER)
 	local craftBuffsFrame = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES, CraftSim.CONST.FRAMES.CRAFT_BUFFS)
 	local craftBuffsFrameWO = CraftSim.GGUI:GetFrame(CraftSim.INIT.FRAMES, CraftSim.CONST.FRAMES.CRAFT_BUFFS_WORKORDER)
+
+	-- pre hide
+	CraftSim.CRAFTQ.queueRecipeButton:Hide()
+	CraftSim.CRAFTQ.queueRecipeButtonWO:Hide()
+	CraftSim.CRAFTQ.queueRecipeButtonOptions:Hide()
+	CraftSim.CRAFTQ.queueRecipeButtonOptionsWO:Hide()
+	CraftSim.SIMULATION_MODE.UI.WORKORDER.toggleButton:Hide()
+	CraftSim.SIMULATION_MODE.UI.NO_WORKORDER.toggleButton:Hide()
 
 	if C_TradeSkillUI.IsNPCCrafting() or C_TradeSkillUI.IsRuneforging() or C_TradeSkillUI.IsTradeSkillLinked() or C_TradeSkillUI.IsTradeSkillGuild() then
 		CraftSim.INIT:HideAllModules()
@@ -490,10 +550,15 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 	end
 
 	CraftSim.CONTROL_PANEL.frame:Show()
+	CraftSim.CRAFTQ.frame:SetVisible(CraftSim.DB.OPTIONS:Get("MODULE_CRAFT_QUEUE"))
+	local professionInfo = C_TradeSkillUI.GetChildProfessionInfo()
+	CraftSim.CRAFTQ.frame.content.queueTab.content.addPatronOrdersButton:SetEnabled(professionInfo and
+		professionInfo.profession and C_TradeSkillUI
+		.IsNearProfessionSpellFocus(professionInfo.profession))
 
 	local recipeInfo = C_TradeSkillUI.GetRecipeInfo(CraftSim.INIT.currentRecipeID)
 
-	if not recipeInfo or recipeInfo.isGatheringRecipe then
+	if not recipeInfo or recipeInfo.isGatheringRecipe or recipeInfo.isDummyRecipe then
 		-- hide all modules
 		CraftSim.INIT:HideAllModules(true)
 		return
@@ -525,7 +590,11 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 		local isRecraft = currentTransaction:GetRecraftAllocation() ~= nil
 		local isWorkOrder = CraftSim.UTIL:IsWorkOrder()
 
-		recipeData = CraftSim.RecipeData(recipeInfo.recipeID, isRecraft, isWorkOrder)
+		recipeData = CraftSim.RecipeData({
+			recipeID = recipeInfo.recipeID,
+			isWorkOrder = isWorkOrder,
+			isRecraft = isRecraft,
+		})
 
 		if recipeData then
 			-- Set Reagents based on visibleFrame and load equipped profession gear set
@@ -561,7 +630,6 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 	local showRecipeScan = true
 	local showCustomerHistory = true
 	local showCostOptimization = true
-	local showCraftQueue = true
 	local showCraftBuffs = true
 	local showCooldowns = true
 	local showExplanations = true
@@ -580,7 +648,7 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 	if not recipeData.isCooking and not recipeData.isOldWorldRecipe then
 		showSpecInfo = true
 	end
-	showSimulationMode = not recipeData.isOldWorldRecipe
+	showSimulationMode = not recipeData.isOldWorldRecipe and not recipeData.isBaseRecraftRecipe
 
 	showReagentOptimization = showReagentOptimization and CraftSim.DB.OPTIONS:Get("MODULE_REAGENT_OPTIMIZATION")
 	showAverageProfit = showAverageProfit and CraftSim.DB.OPTIONS:Get("MODULE_AVERAGE_PROFIT")
@@ -592,14 +660,12 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 	showCraftResults = showCraftResults and CraftSim.DB.OPTIONS:Get("MODULE_CRAFT_RESULTS")
 	showCustomerHistory = showCustomerHistory and CraftSim.DB.OPTIONS:Get("MODULE_CUSTOMER_HISTORY")
 	showCostOptimization = showCostOptimization and CraftSim.DB.OPTIONS:Get("MODULE_COST_OPTIMIZATION")
-	showCraftQueue = showCraftQueue and CraftSim.DB.OPTIONS:Get("MODULE_CRAFT_QUEUE")
 	showCraftBuffs = showCraftBuffs and CraftSim.DB.OPTIONS:Get("MODULE_CRAFT_BUFFS")
 	showCooldowns = showCooldowns and CraftSim.DB.OPTIONS:Get("MODULE_COOLDOWNS")
 	showExplanations = showExplanations and CraftSim.DB.OPTIONS:Get("MODULE_EXPLANATIONS")
 	showStatistics = showStatistics and CraftSim.DB.OPTIONS:Get("MODULE_STATISTICS")
 
 	CraftSim.RECIPE_SCAN.frame:SetVisible(showRecipeScan)
-	CraftSim.CRAFTQ.frame:SetVisible(showCraftQueue)
 	CraftSim.EXPLANATIONS.frame:SetVisible(showExplanations)
 	CraftSim.CRAFT_RESULTS.frame:SetVisible(showCraftResults)
 	CraftSim.CUSTOMER_HISTORY.frame:SetVisible(showCustomerHistory)
@@ -616,6 +682,7 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 
 	-- update CraftQ Display (e.g. cause of profession gear changes)
 	CraftSim.CRAFTQ.UI:UpdateDisplay()
+	CraftSim.CRAFTQ.UI:UpdateAddOpenRecipeButton(recipeData)
 
 	-- Simulation Mode (always update first because it changes recipeData based on simMode inputs)
 	showSimulationMode = (showSimulationMode and recipeData and not recipeData.isSalvageRecipe) or false
@@ -653,7 +720,7 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 		local statWeights = CraftSim.AVERAGEPROFIT:CalculateStatWeights(recipeData)
 
 		if statWeights then
-			CraftSim.AVERAGEPROFIT.UI:UpdateDisplay(statWeights, recipeData.priceData.craftingCosts)
+			CraftSim.AVERAGEPROFIT.UI:UpdateDisplay(recipeData, statWeights)
 		end
 	end
 
@@ -682,15 +749,22 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 		CraftSim.PRICE_OVERRIDE.UI:UpdateDisplay(recipeData, exportMode)
 	end
 
-	-- Material Optimization Module
-	CraftSim.FRAME:ToggleFrame(materialOptimizationFrame,
+	-- Reagent Optimization Module
+	CraftSim.FRAME:ToggleFrame(reagentOptimizationFrame,
 		showReagentOptimization and exportMode == CraftSim.CONST.EXPORT_MODE.NON_WORK_ORDER)
-	CraftSim.FRAME:ToggleFrame(materialOptimizationFrameWO,
+	CraftSim.FRAME:ToggleFrame(reagentOptimizationFrameWO,
 		showReagentOptimization and exportMode == CraftSim.CONST.EXPORT_MODE.WORK_ORDER)
 	if recipeData and showReagentOptimization then
 		CraftSim.DEBUG:StartProfiling("Reagent Optimization")
-		local optimizationResult = CraftSim.REAGENT_OPTIMIZATION:OptimizeReagentAllocation(recipeData)
-		CraftSim.REAGENT_OPTIMIZATION.UI:UpdateReagentDisplay(recipeData, optimizationResult, exportMode)
+		local maxOptimizationQuality = CraftSim.DB.OPTIONS:Get(
+			"REAGENT_OPTIMIZATION_RECIPE_MAX_OPTIMIZATION_QUALITY")[recipeData.recipeID] or recipeData.maxQuality
+
+		local reagentOptimizedRecipeData = recipeData:Copy()
+		reagentOptimizedRecipeData:OptimizeReagents {
+			maxQuality = maxOptimizationQuality,
+			highestProfit = CraftSim.DB.OPTIONS:Get("REAGENT_OPTIMIZATION_TOP_PROFIT_ENABLED")
+		}
+		CraftSim.REAGENT_OPTIMIZATION.UI:UpdateReagentDisplay(reagentOptimizedRecipeData)
 		CraftSim.DEBUG:StopProfiling("Reagent Optimization")
 	end
 
@@ -704,7 +778,6 @@ function CraftSim.INIT:TriggerModulesByRecipeType()
 			CraftSim.TOPGEAR:OptimizeAndDisplay(recipeData)
 			CraftSim.DEBUG:StopProfiling("Top Gear")
 		else
-			local isCooking = recipeData.professionID == Enum.Profession.Cooking
 			CraftSim.TOPGEAR.UI:ClearTopGearDisplay(recipeData, true, exportMode)
 		end
 	end

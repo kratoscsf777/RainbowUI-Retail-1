@@ -6,6 +6,8 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
   addonTable.Utilities.AddBagSortManager(self) -- self.sortManager
   addonTable.Utilities.AddBagTransferManager(self) -- self.transferManager
 
+  addonTable.Utilities.AddScrollBar(self)
+
   addonTable.CallbackRegistry:RegisterCallback("SearchTextChanged",  function(_, text)
     if self:IsVisible() then
       self:ApplySearch(text)
@@ -36,7 +38,7 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
       return
     end
     if tIndexOf(addonTable.Config.ItemButtonsRelayoutSettings, settingName) ~= nil then
-      for _, layout in ipairs(self.Layouts) do
+      for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
       end
       if self:IsVisible() then
@@ -44,6 +46,8 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
       end
     elseif settingName == addonTable.Config.Options.BANK_ONLY_VIEW_SHOW_BAG_SLOTS then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
+      self:OnFinished()
+      self:GetParent():OnTabFinished()
     end
   end)
 
@@ -167,6 +171,10 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateForCharacter(ch
   end
   self.isLive = isLive
 
+  addonTable.Utilities.AddGeneralDropSlot(self, function()
+    return Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bank
+  end, Syndicator.Constants.AllBankIndexes)
+
   self.BagSlots:Update(character, self.isLive)
   local containerInfo = characterData.containerInfo
   self.ToggleBagSlotsButton:SetShown(self.isLive or (containerInfo and containerInfo.bank))
@@ -188,4 +196,24 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateForCharacter(ch
   end
 
   self:SetupBlizzardFramesForTab()
+end
+
+function BaganatorItemViewCommonBankViewCharacterViewMixin:OnFinished(character, isLive)
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
+
+  local buttonPadding = 5
+  local additionalPadding = 0
+  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
+    buttonPadding = 3
+  end
+
+  self:SetSize(10, 10)
+  local externalVerticalSpacing = (self.BagSlots:GetHeight() > 0 and (self.BagSlots:GetTop() - self:GetTop()) or 0) + (self:GetParent().Tabs[1] and self:GetParent().Tabs[1]:IsShown() and (self:GetParent():GetBottom() - self:GetParent().Tabs[1]:GetBottom() + 5) or 0)
+
+  self:SetSize(
+    self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
+    math.min(self.Container:GetHeight() + 75 + buttonPadding + self.CurrencyWidget:GetExtraHeight(), UIParent:GetHeight() / self:GetParent():GetScale() - externalVerticalSpacing)
+  )
+
+  self:UpdateScroll(73 + buttonPadding + externalVerticalSpacing, self:GetParent():GetScale())
 end

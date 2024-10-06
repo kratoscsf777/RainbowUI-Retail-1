@@ -3,6 +3,102 @@ Key Master AddOn for World of Warcraft
 
 PATCH NOTES:
 --------------------------------------------------
+Key Master v1.3.4
+--------------------------------------------------
+- Fixed an issue where the week by week ratings were not properly updating.
+
+PATCH NOTES:
+--------------------------------------------------
+Key Master v1.3.0-3
+--------------------------------------------------
+HOTFIX 1.3.3
+- Fixed French clients having problems loading Key Master.
+
+HOTFIX 1.3.1
+- Fixed an error for new users of keymaster that would cause Key Master not to load properly.
+
+Fixes (1.3.0):
+- Fixed lua error when joining a party with someone that has a newer version of Key Master.
+
+Updates:
+- Due to drastic API changes - all character data is reset/removed on first load of 1.3.0. Log into each character to refresh.
+- Changed data structure since mythic plus data no longer is kept by tran/fort criteria.
+- Remapped UI elements on player and party frame to use newly created data structure.
+- Added backward compatibility check to 1.2.5 and older to ignore data since structures are different.
+- Changed player and party data frames to update when an score gained event happens from a mythic plus dungeon.
+- Updated rating calculator on player frame for the new mythic plus rating system (Big thanks to OMGTOTEM's contribution!).
+- Temporality changed the player frame to a new layout since tyran/fort is no longer a thing.
+- Adjusted the "What's New" content for easier readability.
+
+Known Bugs/Issues:
+- Party members running an older version of KM may experience LUA errors when grouped with someone running 1.3.0 or greater. Ask them to update!
+
+PATCH NOTES:
+--------------------------------------------------
+Key Master v1.2.5
+--------------------------------------------------
+Fixes:
+- Fixed portals so they work properly if you already have it unlocked.
+- Fixed character list cleanup to purge last seasons characters correctly.
+
+Updates:
+- Updated IT Localization
+
+Known Bugs/Issues:
+- Season 1 mythic plus ratings and other functions are being verified and may not be accurate on day one.  We will do our best to update ASAP.
+- Mythic plus vaults may not update immediately when completing a dungeon.  For now just do /reloadui to see the update properly.
+- Due to a tight timeline to fix several critical bugs, some language translations are not completed. We will be updating those ASAP.
+
+Special Note:
+- If you have any issues with the character list not function make sure you login to the character and logout one time.  If this doesn't work purge the characters on the config tab and relogging to each one.  If this doesn't work then please delete the file in your WTF folder: <GameInstallPath>\WTF\Account[ACCOUNT_NAME]\SavedVariables\KeyMaster.lua
+
+PATCH NOTES:
+--------------------------------------------------
+Key Master v1.2.4
+--------------------------------------------------
+Fixes:
+- Fixed errors related to missing affixes from Blizzard.  This affected things like missing minimap icons, party frame not show player data, excessive error messages in chat window, etc.
+- Fixed scroll bar on character list, as it wasn't scrolling properly previously.
+- Fixed lua errors while entering combat
+- Fixed minor cosmetic UI changes related to season/expansion
+
+Updates:
+- Characters of any level will now show up in the character list, previously it was max level only.. but since Blizzard decided to change the max level before it was achievable we've decided it was easier to add a checkbox filter (in the config tab) and allow all characters to show up in the list.
+
+Known Bugs/Issues:
+- Season 1 mythic plus ratings and other functions are being verified and may not be accurate on day one.  We will do our best to update ASAP.
+- Mythic plus vaults may not update immediately when completing a dungeon.  For now just do /reloadui to see the update properly.
+- Due to a tight timeline to fix several critical bugs, some language translations are not completed. We will be updating those ASAP.
+
+Special Note:
+- If you have any issues with the character list not function make sure you login to the character and logout one time.  If this doesn't work purge the characters on the config tab and relogging to each one.  If this doesn't work then please delete the file in your WTF folder: <GameInstallPath>\WTF\Account[ACCOUNT_NAME]\SavedVariables\KeyMaster.lua
+
+PATCH NOTES:
+
+--------------------------------------------------
+Key Master v1.2.3
+--------------------------------------------------
+Updates:
+- Updated LibRangeCheck-3.0 library to latest version 26 from version 9 to fix Spell reference from Blizzard API changing.
+
+Fixes:
+- Fixed version checking during communications between players returning nil on players with 1.1.9 to players with 1.2.x
+- Fixed error when no affixes are found in DungeonTools.lua
+
+Known Bugs:
+
+PATCH NOTES:
+--------------------------------------------------
+Key Master v1.2.2
+--------------------------------------------------
+Updates:
+- Updated KR localization
+
+Fixes:
+
+Known Bugs:
+
+--------------------------------------------------
 Key Master v1.2.1
 --------------------------------------------------
 Updates:

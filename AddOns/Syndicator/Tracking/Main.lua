@@ -59,6 +59,7 @@ local function InitCurrentCharacter()
   characterData.equipped = characterData.equipped or {}
   characterData.containerInfo = characterData.containerInfo or {}
   characterData.currencies = characterData.currencies or {}
+  characterData.currencyByHeader = characterData.currencyByHeader or {}
   characterData.void = characterData.void or {}
   characterData.auctions = characterData.auctions or {}
 end
@@ -222,15 +223,18 @@ function Syndicator.Tracking.Initialize()
   -- We initialize everything at PLAYER_LOGIN for 2 reasons
   -- 1. Character normalized realm name is only available at this point
   -- 2. To ensure data from Baganator is imported
-  frame:RegisterEvent("PLAYER_LOGIN")
+  frame:RegisterEvent("PLAYER_ENTERING_WORLD")
   frame:SetScript("OnEvent", function()
-    InitializeSavedVariables()
-    InitCurrentCharacter()
-    SetupDataProcessing()
-    SetupItemSummaries()
+    frame:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    C_Timer.After(0, function()
+      InitializeSavedVariables()
+      InitCurrentCharacter()
+      SetupDataProcessing()
+      SetupItemSummaries()
 
-    Syndicator.CallbackRegistry:TriggerEvent("Ready")
-    Syndicator.Tracking.isReady = true
+      Syndicator.CallbackRegistry:TriggerEvent("Ready")
+      Syndicator.Tracking.isReady = true
+    end)
   end)
 
   Syndicator.CallbackRegistry:RegisterCallback("CharacterDeleted", function(_, name)

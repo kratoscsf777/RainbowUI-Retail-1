@@ -30,6 +30,7 @@ do
     "BANKFRAME_CLOSED",
   })
   BankCheck:SetScript("OnEvent", function(_, event)
+    warbandPrevEmptySlots = nil
     isBankOpen = event == "BANKFRAME_OPENED"
     CallActivationCallbacks()
   end)
@@ -37,6 +38,8 @@ end
 
 local TransferToBank
 if Syndicator and Syndicator.Constants.WarbandBankActive then
+  local warbandPrevEmptySlots = nil
+
   TransferToBank = function(matches, characterName, callback)
     local emptyBankSlots
     if BankFrame:GetActiveBankType() == Enum.BankType.Character then
@@ -46,24 +49,43 @@ if Syndicator and Syndicator.Constants.WarbandBankActive then
         local location = ItemLocation:CreateFromBagAndSlot(m.bagID, m.slotID)
         return C_Item.DoesItemExist(location) and C_Bank.IsItemAllowedInBankType(Enum.BankType.Account, location)
       end, true)
-      local bagsData, indexes
       local tabIndex = addonTable.Config.Get(addonTable.Config.Options.WARBAND_CURRENT_TAB)
       if tabIndex > 0 then
-        bagsData = {Syndicator.API.GetWarband(1).bank[tabIndex].slots}
-        indexes = {Syndicator.Constants.AllWarbandIndexes[tabIndex]}
+        local bagsData = {Syndicator.API.GetWarband(1).bank[tabIndex].slots}
+        local indexes = {Syndicator.Constants.AllWarbandIndexes[tabIndex]}
+        emptyBankSlots = addonTable.Transfers.GetEmptyBagsSlots(bagsData, indexes)
       else
-        bagsData = {}
-        for _, tab in ipairs(Syndicator.API.GetWarband(1).bank) do
+        local bagsData = {}
+        local indexes = Syndicator.Constants.AllWarbandIndexes
+        for i, tab in ipairs(Syndicator.API.GetWarband(1).bank) do
           table.insert(bagsData, tab.slots)
         end
-        indexes = Syndicator.Constants.AllWarbandIndexes
+        emptyBankSlots = addonTable.Transfers.GetEmptyBagsSlots(bagsData, indexes)
+        -- Only move more items if the last set moved in, or the last transfer
+        -- completed.
+        if #emptyBankSlots > 0 and #emptyBankSlots == warbandPrevEmptySlots then
+          callback(addonTable.Constants.SortStatus.WaitingMove)
+          return
+        else
+          -- Limit to the first 5 items (avoids slots locking up)
+          local newMatches = {}
+          for i = 1, 5 do
+            table.insert(newMatches, matches[i])
+          end
+          matches = newMatches
+          warbandPrevEmptySlots = #emptyBankSlots
+        end
       end
-      emptyBankSlots = addonTable.Transfers.GetEmptyBagsSlots(bagsData, indexes)
     else
       error("unrecognised bank type")
     end
 
     local status = addonTable.Transfers.FromBagsToBags(matches, Syndicator.Constants.AllBankIndexes, emptyBankSlots)
+
+    if status == addonTable.Constants.SortStatus.Complete then
+      warbandPrevEmptySlots = nil
+    end
+
     callback(status)
   end
 else
@@ -149,9 +171,9 @@ RegisterBagTransfer(
 
 RegisterBagTransfer(
   -- At a guild bank and allowed to deposit items
-  function() return C_PlayerInteractionManager.IsInteractingWithNpcOfType(Enum.PlayerInteractionType.GuildBanker) and (select(4, GetGuildBankTabInfo(GetCurrentGuildBankTab()))) end,
+  function() return C_PlayerInteractionManager.IsInteractingWithNpcOfType(Enum.PlayerInteractionType.GuildBanker) and (select(4, GetGuildBankTabInfo(GetCurrentGuildBankTab()))) and addonTable.Config.Get(addonTable.Config.Options.GUILD_CURRENT_TAB) ~= 0 end,
   function(matches, characterName, callback)
-    local guildTab = GetCurrentGuildBankTab()
+    local guildTab = addonTable.Config.Get(addonTable.Config.Options.GUILD_CURRENT_TAB)
     local emptyGuildSlots = addonTable.Transfers.GetEmptyGuildSlots(Syndicator.API.GetGuild(Syndicator.API.GetCurrentGuild()).bank[guildTab], guildTab)
     local status, modes = addonTable.Transfers.FromBagsToGuild(matches, emptyGuildSlots)
     callback(status, modes)

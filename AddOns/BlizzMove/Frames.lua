@@ -258,7 +258,10 @@ BlizzMoveAPI:RegisterFrames(
     },
     ["InterfaceOptionsFrame"] =
     {
-        MinVersion = 0,
+        VersionRanges = {
+            { Min = 0, Max = 11503 },
+            { Min = 40000, Max = 40400 },
+        },
         MaxVersion = 100000,
     },
     ["ItemTextFrame"] =
@@ -465,7 +468,10 @@ BlizzMoveAPI:RegisterFrames(
     },
     ["VideoOptionsFrame"] =
     {
-        MinVersion = 0,
+        VersionRanges = {
+            { Min = 0, Max = 11503 },
+            { Min = 40000, Max = 40400 },
+        },
         MaxVersion = 100000,
     },
     ["WorldMapFrame"] =
@@ -1271,6 +1277,10 @@ BlizzMoveAPI:RegisterAddOnFrames(
             MinVersion = 100100,
         },
         ["ProfessionsFrame"] =
+        {
+            MinVersion = 100000,
+        },
+        ["ProfessionsFrame.CraftingPage.SchematicForm.QualityDialog"] =
         {
             MinVersion = 100000,
         },

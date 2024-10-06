@@ -2,6 +2,20 @@
 local CraftSim = select(2, ...)
 CraftSim.SPECIALIZATION_DATA.THE_WAR_WITHIN.ALCHEMY_DATA = {
 	recipeMapping = {
+		[400287] = {
+			99020,
+			99014,
+			99012,
+			99006,
+			99004,
+		},
+		[425137] = {
+			99020,
+			99014,
+			99012,
+			99006,
+			99004,
+		},
 		[427174] = {
 			99020,
 			99014,
@@ -2711,7 +2725,7 @@ CraftSim.SPECIALIZATION_DATA.THE_WAR_WITHIN.ALCHEMY_DATA = {
 			nodeID = 99040,
 			maxRank = 1,
 			stats = {
-				["dummyeffectfor#tokenization(dnt)"] = 18,
+				["dummyeffectfor#tokenization(dnt)"] = 12,
 			},
 		},
 		[99030] = {
@@ -3012,7 +3026,7 @@ CraftSim.SPECIALIZATION_DATA.THE_WAR_WITHIN.ALCHEMY_DATA = {
 			nodeID = 98952,
 			maxRank = 1,
 			stats = {
-				["dummyeffectfor#tokenization(dnt)"] = 18,
+				["dummyeffectfor#tokenization(dnt)"] = 12,
 			},
 		},
 		[98942] = {
@@ -3075,7 +3089,7 @@ CraftSim.SPECIALIZATION_DATA.THE_WAR_WITHIN.ALCHEMY_DATA = {
 			nodeID = 98951,
 			maxRank = 1,
 			stats = {
-				["dummyeffectfor#tokenization(dnt)"] = 18,
+				["dummyeffectfor#tokenization(dnt)"] = 12,
 			},
 		},
 		[98936] = {

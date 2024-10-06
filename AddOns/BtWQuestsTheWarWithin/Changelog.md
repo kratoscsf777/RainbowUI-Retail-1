@@ -1,3 +1,29 @@
+# v5.2
+
+- Fixed the completion check for The Priory questline in Hallowfall
+
+# v5.1
+
+- Fixed error opening quest chain The Flame Within in Hallowfall
+
+# v5.0
+
+- Added raid questline To Kill a Queen
+
+# v4.0
+
+- Added Honor Your Efforts questlines in Hallowfall
+- Added The Flame Within questlines in Hallowfall
+- Added Socialized Medicine questline in Azj-Kahet
+- Updated some prerequisites for Azj-Kahet questlines
+
+# v3.0
+
+- Added A Light in the Dark campaign questline
+- Added Fractured Legacy of Anub'azal questline in Azj-Kahet
+- Fixed renown requirements for A Star of Dorn
+- Fixed missing uqest from A Star of Dorn
+
 # v2.0
 
 - Added A Star of Dorn questline to the Isle of Dorn

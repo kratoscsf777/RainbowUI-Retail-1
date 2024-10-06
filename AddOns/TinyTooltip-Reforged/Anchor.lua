@@ -48,7 +48,8 @@ local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally)
     if (anchor.hiddenInCombat and InCombatLockdown()) then
         return LibEvent:trigger("tooltip.anchor.none", tip, parent)
     end
-    if (anchor.defaultInCombat and InCombatLockdown()) then return AnchorDefaultPosition(tip, parent, anchor, finally) end
+    if (anchor.defaultInCombat and InCombatLockdown()) then return end
+ --   if (anchor.defaultInCombat and InCombatLockdown()) then return AnchorDefaultPosition(tip, parent, anchor, finally) end
  --   if (anchor.defaultOnUnitFrame and isUnitFrame) then return AnchorDefaultPosition(tip, parent, anchor, finally) end
     if (anchor.position == "cursorRight") then
         LibEvent:trigger("tooltip.anchor.cursor.right", tip, parent)
@@ -65,11 +66,7 @@ end
 LibEvent:attachTrigger("tooltip:anchor", function(self, tip, parent)
     if (tip ~= GameTooltip) then return end
     local unit
-    if (clientToc < 110000) then
-      local focus = GetMouseFocus()
-    else
-      local focus = GetMouseFoci()
-    end
+    local focus = GetMouseFoci()
     local isUnitFrame = false
     if (focus and focus.unit) then
         unit = focus.unit

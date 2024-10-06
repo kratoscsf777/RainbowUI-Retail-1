@@ -1,3 +1,31 @@
+# v2.48.3
+
+- Fixed the completion check for The Priory questline in Hallowfall
+
+# v2.48.2
+
+- Fixed error opening quest chain The Flame Within in Hallowfall
+
+# v2.48.1
+
+- Added raid questline To Kill a Queen
+
+# v2.48.0
+
+- Added Honor Your Efforts questlines in Hallowfall
+- Added The Flame Within questlines in Hallowfall
+- Added Socialized Medicine questline in Azj-Kahet
+- Updated some prerequisites for Azj-Kahet questlines
+- Fixed issue where player level for alts could be lost and cause errors
+- Fixed error reading faction data
+
+# v2.47.1
+
+- Added A Light in the Dark campaign questline
+- Added Fractured Legacy of Anub'azal questline in Azj-Kahet
+- Fixed renown requirements for A Star of Dorn
+- Fixed missing uqest from A Star of Dorn
+
 # v2.47.0
 
 - Added an option to view the chain for a quest from the quest log and objective tracker context menus

@@ -159,7 +159,7 @@ local VUHDO_DEFAULT_RANGE_SPELLS = {
 		["HARMFUL"] = { 47541, 49576 }, -- VUHDO_SPELL_ID.DEATH_COIL, VUHDO_SPELL_ID.DEATH_GRIP
 	},
 	["MONK"] = {
-		["HELPFUL"] = { VUHDO_SPELL_ID.DETOX },
+		["HELPFUL"] = { VUHDO_SPELL_ID.VIVIFY, VUHDO_SPELL_ID.DETOX },
 		["HARMFUL"] = { VUHDO_SPELL_ID.PROVOKE },
 	},
 	["DEMONHUNTER"] = {
@@ -272,7 +272,7 @@ local VUHDO_CLASS_DEFAULT_SPELL_ASSIGNMENT = {
 		["ctrl1"] = { "ctrl-", "1", VUHDO_SPELL_ID.DETOX },
 		["ctrl2"] = { "ctrl-", "2", VUHDO_SPELL_ID.LIFE_COCOON },
 
-		["shift1"] = { "shift-", "1", VUHDO_SPELL_ID.UPLIFT },
+		["shift1"] = { "shift-", "1", VUHDO_SPELL_ID.VIVIFY },
 		["shift2"] = { "shift-", "2", VUHDO_SPELL_ID.REVIVAL },
 	},
 
@@ -2599,6 +2599,7 @@ local VUHDO_DEFAULT_PANEL_SETUP = {
 		["DEBUFF" .. VUHDO_DEBUFF_TYPE_CURSE] = VUHDO_makeFullColor(0.7, 0, 0.7, 1,   1, 0, 1, 1),
 		["DEBUFF" .. VUHDO_DEBUFF_TYPE_MAGIC] = VUHDO_makeFullColor(0.4, 0.4, 0.8, 1,   0.329, 0.957, 1, 1),
 		["DEBUFF" .. VUHDO_DEBUFF_TYPE_CUSTOM] = VUHDO_makeFullColor(0.6, 0.3, 0, 1,   0.8, 0.5, 0, 1),
+		["DEBUFF" .. VUHDO_DEBUFF_TYPE_BLEED] = VUHDO_makeFullColor(1, 0.2, 0, 1,   1, 0.2, 0.4, 1),
 		["DEBUFF_BAR_GLOW"] = VUHDO_makeFullColor(0.95, 0.95, 0.32, 1,   1, 1, 0, 1),
 		["DEBUFF_ICON_GLOW"] = VUHDO_makeFullColor(0.95, 0.95, 0.32, 1,   1, 1, 0, 1),
 		["CHARMED"] = VUHDO_makeFullColor(0.51, 0.082, 0.263, 1,   1, 0.31, 0.31, 1),

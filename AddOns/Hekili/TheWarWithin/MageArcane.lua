@@ -275,14 +275,14 @@ spec:RegisterAuras( {
     },
     arcane_soul = {
         id = 451038,
-        duration = 3,
+        duration = function () return 2+ ( buff.lingering_embers.stacks * 0.5 ) end,
         max_stack = 1
     },
     -- Talent: Spell damage increased by $w1% and Mana Regeneration increase $w3%.
     -- https://wowhead.com/beta/spell=365362
     arcane_surge = {
         id = 365362,
-        duration = function() return 15 + ( set_bonus.tier30_2pc > 0 and 3 or 0 ) end,
+        duration = function() return 15 + ( set_bonus.tier30_2pc > 0 and 3 or 0 ) + ( talent.savor_the_moment.enabled and buff.spellfire_spheres.stacks * 0.5 or 0 ) end,
         type = "Magic",
         max_stack = 1
     },
@@ -399,8 +399,8 @@ spec:RegisterAuras( {
         copy = 235235
     },
     glorious_incandescence = {
-        id = 449394,
-        duration = 3600,
+        id = 451073,
+        duration = 11,
         max_stack = 1
     },
     gravity_lapse = {
@@ -470,10 +470,10 @@ spec:RegisterAuras( {
         duration = 30,
         max_stack = 1
     },
-    magis_spark = {
-        id = 450004,
-        duration = 12,
-        max_stack = 1
+    lingering_embers = {
+        id = 461145,
+        duration = 10,
+        max_stack = 15
     },
     magis_spark_arcane_barrage = {
         duration = 12,
@@ -668,7 +668,24 @@ spec:RegisterAuras( {
         id = 348007,
         duration = 8,
         max_stack = 1
+    },
+
+    -- Sunfury
+	-- Spellfire Spheres actual buff
+	-- Spellfire Spheres has two diffrent counter. 449400 for create a Sphere, 448604 is Sphere number
+	-- https://www.wowhead.com/spell=449400/spellfire-spheres
+    spellfire_spheres = {
+        id = 448604,
+        duration = 3600,
+        max_stack = function() return 3 + ( talent.rondurmancy.enabled and 2 or 0 ) end,
+    },
+
+    next_blast_spheres = {
+        id = 449400,
+        duration = 30,
+        max_stack = 6,
     }
+	
 } )
 
 
@@ -879,6 +896,11 @@ local TriggerArcaneOverloadT30 = setfenv( function()
     applyBuff( "arcane_overload" )
 end, state )
 
+-- Hero Talents
+local TriggerArcaneSoul = setfenv( function()
+    applyBuff( "arcane_soul" )
+end, state )
+
 spec:RegisterGear( "tier29", 200318, 200320, 200315, 200317, 200319 )
 spec:RegisterAura( "bursting_energy", {
     id = 395006,
@@ -939,7 +961,7 @@ end )
 } ) ) ]]
 
 
-spec:RegisterTotem( "rune_of_power", 609815 )
+-- spec:RegisterTotem( "rune_of_power", 609815 )
 
 
 spec:RegisterStateTable( "incanters_flow", {
@@ -1108,8 +1130,8 @@ end, state )
 
 
 spec:RegisterHook( "reset_precast", function ()
-    if pet.rune_of_power.up then applyBuff( "rune_of_power", pet.rune_of_power.remains )
-    else removeBuff( "rune_of_power" ) end
+   --[[ if pet.rune_of_power.up then applyBuff( "rune_of_power", pet.rune_of_power.remains )
+    else removeBuff( "rune_of_power" ) end --]]
 
     if buff.casting.up and buff.casting.v1 == 5143 and abs( action.arcane_missiles.lastCast - clearcasting_consumed ) < 0.15 then
         applyBuff( "clearcasting_channel", buff.casting.remains )
@@ -1121,12 +1143,16 @@ spec:RegisterHook( "reset_precast", function ()
         state:QueueAuraEvent( "arcane_overload", TriggerArcaneOverloadT30, buff.arcane_surge.expires, "AURA_EXPIRATION" )
     end
 
+    if buff.arcane_surge.up and talent.memory_of_alar.enabled then
+        state:QueueAuraEvent( "arcane_soul", TriggerArcaneSoul, buff.arcane_surge.expires, "AURA_EXPIRATION" )
+    end
+
     incanters_flow.reset()
 
-    if buff.magis_spark.up then
-        if action.arcane_barrage.lastCast < buff.magis_spark.applied then applyBuff( "magis_spark_arcane_barrage", buff.magis_spark.remains ) end
-        if action.arcane_blast.lastCast < buff.magis_spark.applied then applyBuff( "magis_spark_arcane_blast", buff.magis_spark.remains ) end
-        if action.arcane_missiles.lastCast < buff.magis_spark.applied then applyBuff( "magis_spark_arcane_missiles", buff.magis_spark.remains ) end
+    if talent.magis_spark.enabled and debuff.touch_of_the_magi.up then
+        if action.arcane_barrage.lastCast < debuff.touch_of_the_magi.applied then applyDebuff( "target", "magis_spark_arcane_barrage" ) end
+        if action.arcane_blast.lastCast < debuff.touch_of_the_magi.applied then applyDebuff( "target", "magis_spark_arcane_blast" ) end
+        if action.arcane_missiles.lastCast < debuff.touch_of_the_magi.applied then applyDebuff( "target", "magis_spark_arcane_missiles" ) end
     end
 
     if talent.nether_munitions.enabled and debuff.touch_of_the_magi.up then
@@ -1175,20 +1201,28 @@ spec:RegisterAbilities( {
 
         -- TODO: Determine if I need to separate what is consumed/built on impact vs. on cast.
         -- velocity = 24,
-
         handler = function ()
             gain( 0.02 * mana.modmax * arcane_charges.current, "mana" )
+            
+            if buff.burden_of_power.up then
+                removeBuff( "burden_of_power" )
+                gain( 4, "arcane_charges")
+            end
 
             spend( arcane_charges.current, "arcane_charges" )
             removeBuff( "arcane_harmony" )
-            removeBuff( "burden_of_power" )
+            
             removeBuff( "bursting_energy" )
             removeBuff( "leydrinker" )
+
+            if buff.glorious_incandescence.up then
+                gain( 4, "arcane_charges")
+                removeBuff( "glorious_incandescence" )
+            end
 
             if buff.arcane_soul.up then
                 addStack( "clearcasting" )
                 gain( 4, "arcane_charges" )
-                removeBuff( "arcane_soul" )
             end
 
             if buff.intuition.up then
@@ -1203,7 +1237,6 @@ spec:RegisterAbilities( {
 
             if debuff.magis_spark_arcane_barrage.up then
                 removeDebuff( "target", "magis_spark_arcane_barrage" )
-                if debuff.magis_spark_arcane_blast.down and debuff.magis_spark_arcane_missiles.down then removeBuff( "magis_spark" ) end
             end
         end,
     },
@@ -1220,7 +1253,8 @@ spec:RegisterAbilities( {
         school = "arcane",
 
         spend = function ()
-            if buff.concentration.up then return 0 end
+            -- More mana trickery to achieve the correct rotation
+           -- if prev_gcd[1].touch_of_the_magi or buff.concentration.up then return 0 end
             local mult = 0.0275 * ( 1 + arcane_charges.current ) * ( 1 - 0.03 * talent.consortiums_bauble.rank )
             -- if azerite.equipoise.enabled and mana.pct < 70 then return ( mana.modmax * mult ) - 190 end
             return mana.modmax * mult, "mana"
@@ -1234,9 +1268,24 @@ spec:RegisterAbilities( {
                 removeStack( "presence_of_mind" )
                 if buff.presence_of_mind.down then setCooldown( "presence_of_mind", 60 ) end
             end
-            removeBuff( "burden_of_power" )
+
             removeStack( "concentration" )
             removeBuff( "leydrinker" )
+            
+            if buff.next_blast_spheres.stacks == 6 then
+                removeBuff ( "next_blast_spheres" )
+                addStack ( "spellfire_spheres" )
+                applyBuff ( "burden_of_power" )
+            elseif buff.next_blast_spheres.up then
+                addStack ( "next_blast_spheres" )
+            else
+                applyBuff ( "next_blast_spheres" )
+            end
+
+            if buff.burden_of_power.up then
+                removeBuff ( "burden_of_power" )
+                applyBuff ( "glorious_incandescence" )
+            end
 
             if buff.nether_precision.up then
                 removeStack( "nether_precision" )
@@ -1245,7 +1294,6 @@ spec:RegisterAbilities( {
 
             if debuff.magis_spark_arcane_blast.up then
                 removeDebuff( "target", "magis_spark_arcane_blast" )
-                if debuff.magis_spark_arcane_barrage.down and debuff.magis_spark_arcane_missiles.down then removeBuff( "magis_spark" ) end
             end
 
             if arcane_charges.current == arcane_charges.max then
@@ -1395,7 +1443,6 @@ spec:RegisterAbilities( {
 
             if debuff.magis_spark_arcane_missiles.up then
                 removeDebuff( "target", "magis_spark_arcane_missiles" )
-                if debuff.magis_spark_arcane_blast.down and debuff.magis_spark_arcane_barrage.down then removeBuff( "magis_spark" ) end
             end
 
             if buff.clearcasting.up then
@@ -1474,8 +1521,9 @@ spec:RegisterAbilities( {
         cooldown = 90,
         gcd = "spell",
         school = "arcane",
-
-        spend = function() return mana.current end,
+        
+        -- Mana cap for arcane surge this tier is 2,900,001 mana
+        spend = function() return min( mana.current, 2900001 ) end,
         spendType = "mana",
 
         talent = "arcane_surge",
@@ -1486,9 +1534,12 @@ spec:RegisterAbilities( {
             applyBuff( "arcane_surge" )
             addStack( "clearcasting" )
             mana.regen = mana.regen * 5.25
-            forecastResources( "mana" )
-            if talent.rune_of_power.enabled then applyBuff( "rune_of_power" ) end
+            -- trick addon into thinking you have enough mana to cast arcane blast right after, because in reality you do
+            gain ( (mana.modmax*0.25), "mana" )
+            -- forecastResources( "mana" )
+            -- if talent.rune_of_power.enabled then applyBuff( "rune_of_power" ) end
             -- start_burn_phase()
+            
         end,
 
         copy = "arcane_power"
@@ -1596,7 +1647,7 @@ spec:RegisterAbilities( {
 
         start = function ()
             applyBuff( "evocation" )
-
+            addStack( "clearcasting" )
             if azerite.brain_storm.enabled then
                 gain( 2, "arcane_charges" )
                 applyBuff( "brain_storm" )
@@ -2104,7 +2155,8 @@ spec:RegisterAbilities( {
         cooldown = 45,
         gcd = "off",
         school = "arcane",
-
+        -- More mana trickery
+        -- spend = function () return buff.arcane_surge.up and 0 or 0.05 end,
         spend = 0.05,
         spendType = "mana",
 
@@ -2117,7 +2169,6 @@ spec:RegisterAbilities( {
                 state:QueueAuraEvent( "touch_of_the_magi", NetherMunitions, debuff.touch_of_the_magi.expires, "AURA_EXPIRATION" )
             end
             if talent.magis_spark.enabled then
-                applyDebuff( "target", "magis_spark" )
                 applyDebuff( "target", "magis_spark_arcane_barrage" )
                 applyDebuff( "target", "magis_spark_arcane_blast" )
                 applyDebuff( "target", "magis_spark_arcane_missiles" )
@@ -2164,5 +2215,4 @@ spec:RegisterSetting( "cancel_pom", false, {
     width = "full"
 } )
 
-
-spec:RegisterPack( "Arcane", 20240829, [[Hekili:LZ16YTnUs6NLuPkfPZO4izzNltz5QYKD2DNu7KZuLM9S)tuqKqw8escn8ID8wU0Z(2naiiiUqs7yNzYE(JVic2SrF9RB0uRNV(3xVkIusx)PtND6zZE7PV7K5NnF25NVEv5ThORxDGe(zYvWFKrsHF((8qsg)JVnHrIWBVGvLhcF0(YYdf)4RE1vXL7R2Esil9vfXPvjKYywwyozxj()HVA9QTvXjL)s26ToE2ZEZzVbO5bA46p96tbQghfrflLweUEfU0xo7TV8039Jh3Sko9dh3uDaPYXpE8JIl(MxE6BHl(77Ph38)qYHFaCuC26vjXfLfilhgfWoqZO5W)8jUmGMr2MqJw)tWfZJlP5XeytMtVo4QWOtMFcHVVd2sYZbPXXnJoUz8XnKqCVzCXtIZc2LeF1(YGCAkjoR44MlwECZSto)4M7U74gKI2xzsnr3wTBxnjlQYbcwDqCJHmwse7MS2xvrQlpUzXmoHWfduYM)53b)bP)uc3tqcvuc6AGJoU5mGkRxvvqdy72HuaLsRe7wWWGvfUhUsq5EAqk5QyHUjp(G46)oE9JBy7oUPe1b)kSeqlvqJoU5M90SJBewrh38t1IZyG9tJJEPqUb3lO1IH7)ww1Xn)ZQIY67V(oxj2iKSi5IIyzVaw1EY1uo)xVWpW3BftL8YnKyyvs7sAH8tlJtrMaUsj5Z8pLDCZFurR4pcgSgGFaBYKe4)3vI)NCtk2pCoqYsXz4nZV86sW02R1fxdaQOcAwikOdsJZIaDDJGU2UkHuuI0AHxAvssOzLNShKEbxZskrZq5c5A7RjWYG)7ePzp4kG69O1RMpZ65XY3AOr)VlGn2FpF7Xn7qnJWEPqtfje7)NWJ)4M)H45lK4GWHEnlKhdq9j)ACrrCcsao5(eviG)TCAyCH(cBPTrjWzELa94BCHWTlL8LJB(BCdKrA(tww0EVX30iTu7lKXo3GXmePPYDmWN7jyOO5gQaWQHMNxDOmiEhOoJd)CaAuEPwSIwlknLgfJXork1ifS0Zn3YvjSTKeC9a7(6(LJdxMSWA7wi1xLOD0osvsPkqB9kdzviRXDQ0zLAxM61XxqrjLyUk)odChRI4d7zzbfLS8uvauiM4ZqFCUZIs)1YtXNDej6wEqXA(6aRw173M0ososz(JjIYVOTqwTc8bDnnauJPXORYLqIItBE(8aLfb)ZQORsHDJlBWUsKj0qkQTf0e08phNDv3wh9tOeglkyxv(TiHEZdNq7IZPCIH05TpC6qGGRfL5KKGqcyPbe7DECvX0DaztlmtNLhN9zAjpbqy8U4qEUiWsHuG6fWL72POcLBNlsLjYyDda7OXGQyaSTWkv7IkBuXv2zGQaSiMjUYZ0IXdEl5S4OGsbJhq)JQ4dhOCjjeRX9UV4WTPe8olcUHUvNx7ciHF2vbNXMNFRKNlXSiqslW3UC)jhcl5xDX5QDK0rTonilfqyfLY9DR9yN4xWudz1yNHcbtiFkKnGFEiKlIvvaspswrACzjggTL04RrGyeGwTbuHDAIkPVBED)BtF8oUFnbHOCoa)EyPLb8OSqYy0ZPzVoeJkbJzhYvehtg0TEXN0wxWLioScUuyfmPER5InXTL)uaoeu2WQeGp5uYmgERaa)CghXNYrwbprqWJBW6kWiaGknccHcWxfycHBcvi1gYiWjwCiIcqLfeIjfi(NaKkIAuceB7MQuqw0F0DxzkgRP6imAGqkhWZ6ECZpO8TItpqlRkA5qns35tiYHGXGWh2mu1sbhlWwiSSvPbDUFePYbypxrZdaMIVT8NR5jGbQYQZmn3FQPN89o)5)wDqogwKTa6uYZweIb)SrrjVreLxscfyihiP02KmO4cSGJYgkuBLW)ljZAAW0GIB1PUGEHK1lrtQGF9o3cyG9bjsqycfQFOr42bN4aVvNp9AcvJhUTxdZfmxe3DqrmGBGh4a)xxOR6FtpFGvO1AdNaHTyLQ6kmDp6)PQI1EvcblrGbXA3sIQto1eko(QmqSk35hYJz53ASeoZcwUqnXariHH50gSiEJP36IEZO2kc7)qUjWQNJIdfvMZbzHnrGakHAmyL7jWp3YyfLWskabf8ROQCEy3Tv5OBxJ0SlKqgbaQrzwlxtJZZz5qHwwoKwaiDzzBvCHTZEDv9wqYSmA6Gy6fHw2eHZrBTua92hVRe96oWUXsr8VJ1JVsqein3k5AHAZXfJj2sUvRPhVihurzmS7mzr415DtHUBhftJZ1Dz36bc8ypn7svaKpmfdQ6PUWtbWlMF(GBaaU6z15fnWv06AT2kSQeoZ4kkCtcdigtsaEF2nBZuqj3YiVva(KK8phOBiXlXDuDNSEPvRj5Rb)rGOpAxIDDC28Z1Bxi)ba(qr0muuWTpE40TZEmUu0Jr9NUtu1C63qlRUL1qU5kAzchs1ptKeYadMeQ7gk41CRvxCvTePMBZ491k4qDBTQLLUyWgRcxSMzkV61IDZuVrsNJjhcxVcubNB1ichTAKZoEK6UY55dVsRyiV)V)ZgD2Lbxjn()fTp4n8BxvwgfBLAPmIriRqgVOGH2zSRPqf7WkaAnLh9VUPSPqUiyvvyGhTop(babbWtfIGvD1wsrVLjzY(zkmlpUH3GhdVU(mFhvB3ouNJlSCoSmrCzq33kpTocKRcbotwKfprclFR6ukui(h5XZxflvUj7PfZCAeQPh42xn(3Mnwd4f3DuS2hM1APQEoJryQdD0tGxtWtgMV295MBsOSEADKcggr8dEGyz4LXnz91dqRZz5u)8VMK)z9i8v2iTK(n2hZ6n0OJw1nixDLxoIiGEnIa4N4wrcVSFjRSkgx5p8PFtejqWanNBdhabjr2EvLC8NqNMPcIudUtDwaGecUhGyjm8ZX)sxDfsoikaVTQ5qolSyAZjljp)gKPS895cZRsyaMya2kujaWUW2gdEQ3k5U9A4xnUwcCFZJ2kuX4(JbmVRqfcEAIvUEDBoj)PHkZL1e2FU2XL0PHt3zVpwpHu7etMSl8oAjCl7YMdysavfpzVBeMhXPhii4uSUjq7QLPkKb1EG3pAMOo3K6mu7jICwQtEbbclplq(k(p(W)gU)kLaInYb9E5zC9(YYkW7d7yVPlM2ze12s0kOAT1LhtuJWhDztORw8e9yHbiTbLhWxaVf9KQYWsPBd(hK7KmXXGoXTrI9IGjiknNi)I)tJtDcFEo8n)1p2NhYcBhpR10jAGfDJZ07PdiFy0VCiHvW)K2DiT(ZfG0W57is6wSloVOSbNLHBXmJDV04khZLSfWaw6knNpJR5DAC104FNfI3Ue)5NEpApNvFn7COs4BbWskpNxeEoBxCymOiUvxpRDO8fvhO5zSRjpcLswqlrV7ItKR)alToqXaRV0LFMEdZ0QR8ExW1G6qbFueS6lrd(dlGbVaRJ4k(53XRTOo)cM3pQI)i1ByFyeg(NYpRpOeKB1mz5ebW8978GoVpJLsWRJil4hjqmVPvvI76gw(NXsFWecOpr9qSiWjYR2zxdZ075Tzm4rTs92AgH8wRQ1qe5(KMov1pJ6MGxRnka)Ti9tkWvLPdf4RtW4dOItHVABqOIEeiXEllXeN5Oxa7OvOLSH0DGM6dn3IUjVJIoCfFtsQsA6bM3KNIR6dtvtcz3an7lvYzMNYQ7e6TlYYzhn6lNDhroOFHgwjCKN4nCRJItAP)nkbdev0VeMaEAxZXObEY4rEX0gNOg4HkJgr9Cj3qUTqd8hkb0X4jsJRhdHMfjEGueQi307XgQ3JaSRZ6PxcYce(ZeuKjEEVWumQyN3qA(rf8BYvkAK0VgZ1OLy2GBuJS2u5AbMN)lMmQo(hNPpSGCG8ISKKQCIu)JBDTeczuu4RnRGgZ14WchouCDDdDKFV3RPjSJZDyabp60F1jolnWJDaGQBWtJ)E8qd6R5xwbhB1VlvdCg1XXpida)NpUHjEHX90HE9R6ydmIN8lz40bNDfEwKIdEEApHx4bgaON3YtgiUQRjGwn1iEIQGHra(kVPN4c5906Hwow2c86HxwUUiGw3kEw7JlLOIDXRI8yMJZCihq19eP(3YJgPJXyzKo(fNLuvZZ3Rtx5RE39qRURpWVUpUfjOf3PGeaF4gkfuSdxCJmKrqldRjV2vsGNMMWyEQaD3Tptq1E62NER7vDU3AtA86fiw1cPGr6KHXu44gtRYc3d6YPnWddtIpiRFJ30VQm4Hx8y0UpNTItVJF(BTBFhcWI)mb35FyR6e2Q3QeDo8uoAJZ7gExCW5gHMZ9bKVosZEnEaR5zykN1R4VnrXqfz5148FHA(8Eb2lH)OkohTYfDzGuvYsj8ciWwhdzYp54h)VIrpZf)ia0KLbpn(LFHdK9Vqye66s1H0GLmE(xMCc(Ap5G3KdS1JcNPs4BWwwJLsdpjO38zUjyTMOzGEnOS9c8(io39JqoxJg01yAhhkXSMdqdY6DobTEaV(P(b8MNShGtZm1Kj(OyOr0hhqBtIyRrf0C77r)9GDTeu9DFJClEae0Psroey3pvIhrN2edyWvoMLGVnQdp(qFLu9Tpju1NQw7aomOQJJ(OHOCL9owsc7gooFSic8qoP4XOlazfxd3JiBTTy4059ZqSo(XtUdqq3A1rr4IJiLKTKc6pcMwCeDYsfXZCx8jgN3TptqJJe5(zl6j8GrNOndH5Up1d06rUr59C1oYdXSzTdKQFLwpEcM)GPAVQQhf1KRQFmyZUQvtND)foNIe)1TnOrMaq0vvUNLVE1k1Rz(hWxZCSkpGS4mrlUNItu5P(HLVsQpvZm)Xp6Av1LDofRkEPzTNtzhwYhK(PsGwlp9HsgKi8r3E57MgVB5ZCLVBi0wafTMIaLKvJ11aUFbV0TbqC9Xsx7r4WQtUxMF8Jp)4MhZ56EiSPV59UTC27eYF3DDoD8Ax2ZKXRtGwtfV2f8mr8U3EfzKdf7zLbcjIZ1OpP6UxHEfs62ynVDAoVTMxC7gvT2TOUjyP6VnV6FEZBVR(NkE3zrQA3U2Qd3D3ylgCuhVwUt0jTXRfR6zy1T4rD2o4rTBe1LAU3WdP5TLfPVD7hfVlG63G6TIDG3G6TFDGRV9B5AN30ZF(ZXjZ7AgoiT)8xaTwgjPW6TvT5qTEFvzvAgEg7XytnbZXkC6oc5PhehRTS3In38hXhsd7fZFCbu5tJ3PxHhlhebelExvH0KOdgFyKCl2ngm2jOulQstHGIp2KLWfjiz7)WaU8CEOWhR3IyDTU6nwUJn4D3DWXRJ6D316OeU40z3D3Z6)D90XZwg4Tv0oKDgFV4NjJg3MHElWqwVzOxS4CGnBdltRhbtS3vMQ32CTNO4pa2)U78F8ix8gx8LpEYt6bopDpzQrgVSXDZLVUFPxelWd7bOAk(8uTJUz5C)H3hUWWXl(lp)vVwQ3DN7dceYT4jd9ilRTlxC(KUTFsjrb)rfLMvaE8z4xcrFDCxppnO6TKicWULmrm(VMNKwUJw9ffPRHcIh)6r)LGUf8bJxDwXgw1F1(xQz9MtfVFUcRqZC5J9EKs)Gm2ISpHtgvhSXQ)ydGLKVfD6CYxb102GTi5G4W2Qye62ZDFiL)l5xttnOFvwCGmZkHUD4n7WXsj8OXckA8X2FZGDXYzNa500obg(NaPdDDs9AXVnGblqASygeI3xsIr(oQLloRDyUwsburmTGgUeFLY6aMXiu38s5U2glK6uaVGFcGtLVYAlNFUBHVzflUpg)QdCd5)s8TtvN7dw(wpLlBMJUrYmZnfBvuwNMdxipx6)2zJ6hLQAXVPZns9HwIpCtox)4fx680fN64aerpjJdne(i(jkc)UpPH((EyWXvB0fAvWEIz(dS016tMxz)5)y9xUywN0kSzaxKL9yykBhBXXWUmAC)tU6iJapgdO9LC3VjnUn))UjPUBDARrsYdoFvmC3HG7yqP6eF9PZMmYDRQN0jp3oeI3G4cuA9pl0d5zPc7oedo9a)TUMkMVYOBap5gqOJD0(9w5WAnF01U1ycqHItFIOBRl1LBlpRPIs94YtMmY3GkHpcFxZP7NAkNf(D)1FELhIMsptGRzwz04XUs31biezTkohXLjdi7sxZUY9oZdxt9x6HlUtLKv(LocDSCHuY76ANoeBHbatBaerZ13V36GIIOM0yFP4DNkWraFEVGDxcDpnq2FMGlNF(aaKD5CiFX4oMByJqnAZm8s4oBvcpslNfg80LQteQ7FjNMwVMCHpoOaDOgr)VrUD(e(nZ9YuUIu03yVEXsz2wV5ino)Kl82XfvhwCbUUDzPgmUvLP(c(4tG5SiuZOe6fbCpfl9uUaSZEuhDxV7bFXxDpxVlNpaeDIQ4Xyk9n)UI4aFxmHU9ja1r8m2jKNoWVitXApCUlx8ThAt37ZbuPrpwAjDffST5OSxKpXFVJPXmINX3laaSsJ3caDZxwmo2FpGSnJFuR3RUmj7VrXgmn8wUaaeKxP3dkxiCNgPNAbRujb)2KA8mxp6h3KBpxw043LFPC5s8CVkzaReTx7Tl0S38Ly0BfQYsLMyn1iNv3XhTHLDKtNcEiJokz2ivtRuV21gu3neHHUZIeUeWO7nAYZLkIV(VkS6q71BEg3ChiLC1Wg)jyN52F)5A(dF))1x1W8s4IiVFXw5lGDtoWw9uBWovDd3SZ2(OsIOBfWBUKhT9flM0UBg6FXuPAsOjzncyCFb1(x3VKP6WSO3g41LXI0r0VMRwa7cWlpZ99Q5GlCeA1FByV31Xm5pH2lom4g(Ts7SPD2IRfIH44b)90uhgsQUTP31ETxJb)m6fZDOx7ksMrHfEI0XFB(w))9d]] )
+spec:RegisterPack( "Arcane", 20240928, [[Hekili:T31EVTTXY(plbbGrQ1XrpStIlKmqo52790GB7PakN75)effjLfpMIuLpSJVWqF2pZS7YL7BsBl3M(aOi2MC5S7o7843m7SBxoE5NxUikOkE5pnz0KZgDXK3F64rtE)O3TCr1D7JxUyFq41bxb)swWo4F)qryqg5X3LMheHFEzEDri8OTvv7l)U38MRsQ2wV(0W8DVPmzxDAqvsEwyrWMk8VdFZYfRRtsR(HSLRn13VBYyGM7Jdx(tVDcq1KOOyAtJldxUaB6RhDXRNm5KdRWF((V7WQfj7(4Hv17rQD4th(utJgpcE5NVno46dRY3hNfxi(2rJPKy0u2pTtQ3)6jxy9LVJoi(824dR(xbfW)aCGKSLlstkRkrwuyKpT7H)4Ni884SG1PXrl)BWllsQIlscwUyWHv7lIVX)QWOthFAaHv7VoOOawaoSY7WkObbHi7u5LNMK5Vjn5QTv(fX7csYkpSA2CysD65hwD)9hwHuu)ndBi666nBAizzDbqW690pmmppnk)2m53Yj1LhwnDeHqdPT34uG8rK(sSJc3gG0QScKWGb1HvNbuz5I6Yy)8nBqkG8kYYErYECwVCXNZRd3cRLBoSQcz3)yWvjWcszC0Hv3Uno7WkQa6Hv)Tg2wcmm3Le9Ak)b(wybkb((7YRpS6Fxxw189nF5c6OnilI1OO8SxbTABWnXKbztd)izcuEcBSCBqc0kMiFCj7Pvj7Wbb8MQGRjpn)WQFPoUM0f5qBGXdiUNMc)9Mk8Vyts68HmcydPKm8JjVE5cQGaOMI)jWX8bs5Vd4hlRafkRYyKvayjQmolez0(7sYIGL7wc2iALguwH0AQvAvfKgNvD6wGX6FtEAfkjYAypwTr9d8frlxmEKY68)SeMU)JI1hwTbxVOFCPWchDX4Vd98Hv)F0UMUoaSS4BYdjgD4p5htkltsrcqi3pftz7)CrCysPydLKb0yj5fRrgYzwziDOTmJOFGQg7c(YHvFdO80OeY)sTLtxF(5enMMrjFEJdYZvhKBdqtsJ1Mu7y8MLlaXR4II69v(jBGf3KWR9rP3lfmE4rxsj8p)GQQ6S4DOiao0LiWUDXrjOTDShBzqc2g4JwQHdDRgi3wGKxLMVoifPhm7EB3lbDYiLTKsxQI)sCyDvSpvR9B1y4dCjupNAcJ(FA8zshSe1Oar9nb1PvCNbnTmmVgNUeRbItVgf6M2rAqzvCGARSRQ(cqT4xQt2Vpo60Y93Td0THoY)241s(akt2VnpZVSkVyh3ha8YxGMVik78LnjnDBc(br3j6DOxdbPxjoi2i7Gd99GoF8Sn2Lxg2N3OAyx)1ORqCEr6LOyYl1fS4Ta7RBI9bp97sqRnxcIetKgfeNqL()76ORqfhJAQUXd06m9MaOvWxDkdAJGp4o(sDMjOs8(r0pVcLPbR6G4v12t3hwrE7ugsIwjHg)e57auireZaCrcSL2wn7nybxYSYRTRHNhxCDs2vUno8xm0(YqtZZJ83uxChYqF3FXqFQm0njfXeMkYpF)FXpFQ8Zaa9AzvrqQFya4SeyQxyLPAThvWDOGirNFnzeNJWxjWryEsKFvrs21Xv(nJ)2Hkgqdmu2vQgld9liO)dt2Kesceb8LguI(oGE4UtqNoeSc04yOHRCleEzRl3sCYdaOLN90O1L5HIaiKFE)eaDZUA8DsWgcss(7ZVnUaG4FnrgWOxAoZ1JlJrW2GAl(L7rcv2kIn8qBeRp)cZgWJueVpVOseUhf(HoWKjNjfv868YstTKitrw)utkaD9JezfWrGihHUpimSiMj(ZwiT2GN6kkBGZX11c7tCWFwFNEQXJsNEj72hxSjoSYpOmmolcuQVZhCKxVRDg6Qngq9loojGpLMfMqN2VjGkYA6eOcOriiLMxxcgacYk3LubJiHGZT1aP1No4YVtgITHg1BXmvOV0PraGFcgCv(uLVC5yFn9sPal60wOO3br1FkUzMYMRydmOtFjvNEizAPcHMoT2fe5)l1XXzLam9msMg5ZktV74nPidkvyO0b1M4GI1fmf24WT5cye0F1rEiPcKJXNaZSPrbqNwLJbEY5rkp)ipySJcYLCSEEQOj6Jqsvmas(B)Em2Ab)M8K(qj4Hvy6ArhUa2QiiuIdRYP5Fd(iufUXZbMoQ8KqmJj8a3bmi(0)WhPI4KrbZgnRW(uoFBEHXq8v9H3sdtXvoqyniip2NQJ4tYHaj1fm)COb0QAz3OEIocT6XfWjalQHvK0WAFQkmFOjMa85FfMEOCYIYe757(zyauN1e0Ye75a9zFUt6)PIPSrryvkTnveiQHiqe9CcX(qmpyPPGBqt5fsysMVF5cm5UvTuOrkH8BSbRQatBoPwmXuIKqYALOP1WpUWn5nX8HPgWT8dtJdUHN4ytjOP7EFGZmOYIbHIC0myGM0mr7b53Hjd0VmbI4Gyc6C3GkAbbo(CtDBR7BL(S9fD0Hgaa00BIlcTwwuDp2n)K7m(Q0ampU5GtG1brnygB9vNCvgSiZy27lsYlUtPjwGOQsifN(sV0ckkLwzhPOsdHFgE9Ty6THfUOuios43f5CwJPZqYL6MxkIT5Rc25tJr1it31QJidv4X(r51a3XhmHcr7Ak7sDZrHOLKiUX(3NBtfg90DYsfXXXde)li64CNkPKTTanUvMxegxCNuYY5UTTYwy4AVq0rWUKII8c)KDA(p0J(3K1wTe3R7CQzh)Sen6tmCntXbQHfWXOuC7TQAD131oQpWzo9TfusVs3FpSi71VT2dB9Ognl90j0(o1ztEDkB8iKCSYTjBQqPpskyuGb)FJ7a6ckZdGaVG12dR(zSXiO307e285xvasJz54UKNfHVNSR2XBW1y6gXhKDNs2OiRY4WKPHQUDZIiQGhN6JTvFN)nUIcwgWHB5PSpDF(UggZa(AgYClbRKbfx7lkC3GeGfYPXuJqAyRSH2wL3M9NXCAPIpFgFNanbMQDYyvetQwn4BazZykJU)R7B2(6MeSzAy0YR1wfmG0YLMJPn7uqIuBq12WjnsVwIJb0tEn5xM0SjR9ihDMtlalvFdfYwOl0McIo9QygWVUaDNaKctGe2LTYtQqcZlwlLih(cPostSP8QCa04hjmhgkNqs9DFNT8)ONbEUwOVKiOBAXJQbypghjZoF4F89kfLto8MDj))4GJuvgBQZYIXQGPIzKjmVKzIPmh3o(8BIlcW6KbOfg8Erst90SdqdbTQgTvjuEiFuyU6U2rOLfuqgROtOCGdRiPi0ecAHCvyLXnJip7z1GnvY7fDSUXtIIPfU5ubfTLasPtiX(jtlohqQIMuyeK6EkqJ5Lry7MqahAB7Z7WGX66IO4m0AeXnfpCiYlVknhq)caUGOGGrumcMimwUnaiR6eMx3gnXw1zsfC8ATcMJ4ga)hFAvFndRfUrmx1DziBSOYyF7HlFi9Wen1DTglJDXHyHrJhcIHmZgcw6nrSznvPeNVlsdJM3S2TwKiCIqIwcj90kd3adIFj(geVs7VjO8hGLR3DuJhGBra4xSqvMrubmvKybPL5cwXIQlikh8Qgd4iqJakKMJph)nr9TWG90KkkRBTVipeZgztLjYQ)p0gj3aKAqssZ62YBJcBdR2WBPDjGhNSkIXCaQtcd(W8SiI2d218YSQX072aQXyEHCHGcz1NiPf)pF8)cxBRyGdvmU(bgZ7dCNuA2mT4iAqNs(IYvwK(NkPN2h3I2SGpLRhTuOe6SvOBkYOMkToPYyZzHa4uXzQU(OwBCc7AQBGH23n9woAbQwTg8jxzYFLno6yxJQZ04HXFzFAEj5jYzZV55uLySKYJyIMBskkRADIRiAoQnIzJX)QeATPKXAllUAP)2zSPeUeODuqsuayeytsycSoCN4Y8iHO6QHqRZYVj43WqS6v8vUJ5XCqxYf5UKBgP8ZAnIjTcw38EPozKsyb8yLlbXLiXTjPNXttkvzTOOB96O5o4vie2Rif(bbwBZigT2hvt6sXTEkmcnqhtksea97Dcc0eIaUY(mbjYhYY3fGVh9Nq2Cl0dsDzn9RUnV4Ae1nAYg1yAk9Dk8ocq7nTdg3bh6g0Rr4Oobr3BjllQSYyaObWZqSYcUapOaVcM(lqk3jkw5WpRI3Tp3Qld6BTHdQntdkqwBbF1fajKeDfLapyxZooLt7H924zgmlTQOjck2bIzaKIv3HsRxkbAa8W4VeMccM3qaDac(4gAMluD(T4D4lY0OwsbqDLcOzqwJiOfQZxrvU4SiAhgJyFiIkgXUyY1)ZvrYRJSrcP(tcpZzYq5TaXA4JaXYthUIdejkbZssrjjp5)mRL08e8JjeXGk0I7TCa9NWAlmvj)iNz5e)LZepgpe4SuNEb1fbmHgCqly0nlg5ZcNIhLtCuNON6sF3PkMrGlcyKCGi5pGzkFqh5CtZEMuA24Hj75iN7mBM)2dzXoEKNf4GskC)qgEW2YUknUjPRN0H(hrZbW)ChXel9TMo8E8IWXIAhQNbAhfT5eKYRoP582LWsbyZ5UJ1UiGw3r7RTjvmOzMgRuVdQNepYog2diXpPTp4369gWr5d5jc5WymknJ5h52l8iNDp2WLCc90mFZso56rUQuZ8Wtggzpt(1hyWFm7xIcHIOCugJj)HOyHtruBqlBxMWi3p8CcOZeY3mpDZA9KYrYL2QPSrht7g1ZiWa3vNfUfeaoPfTxyAYEw0lKKsvNbDEz3PJ6xtiDgZxLyzXBdiMTnaqqM3kwn7hBhNqeTg)277zotUO)Pmb(uWjbrER5saa6(BdkYqRTlxqot9j7WYUNHo)v8AM8vyaZ)sDsbQnrdLoOUcIbMa7hZGj4L)0dF6)nb1cM(DasV8mO3iV(vgqr)kQSMPx1O2cnzW4Vm8u8W)BySXkIUJYiJdgqzyPvHeTJjk9o3m9AwiA3lvfcR3aB9WBF27H39S3dV)zVhix(eg6cTAovPhSwtQ9TdoIZHjw6cwrfRqxLsnUVe7OXqMm(5UdM8S1bgTNWlHTJIfLaXkGqxKirR6i6PoJH6DtB(BTI46Rq9J2C4ylRzpccACnIvhApSvOZE21CT3dpnzal09r7h95KQw8e(eP6fMPQWUHPqud7twxYukBK0dt4YI6VYoDOQIAEFquN8UD9tcIXSiRu0p9KQpXfklGiE0uTZLQJYYKPqCvgMUciVN6ap6fSdF6hiZFKyV9G0zNcNAyEaGXewS20xvEk3j23o)nmAZpnlh(KPw1KyItWKznxn7eNKVFo5iUCcdU98jpwYGeHut5ZV4KKnZFHjdHh(0l)7qOr3juXixhhVNfkngWzZHXViVID6zH5xq)MC0VvESmW5rzzO3aBhHL7VxoBNQhFLzNF)9op2kxo(CrYlEuv4020XurIWAzXePAF4f2o2fYChRNLI7V355Oq41wodfIeq68ti8clNfaHwyVc4fAK5twrp4rwpYakIq)2YLE88GHEDXQ7hxQphjegVA8yZKS5EBWjjjMngyhMRx3h2dl6gIN3dZTqmfmIMVApg)9yE54Waz8RBVC1GEuVd5Fe0uXRZkXN3E9vj(u69ZezEyraZBG(EqHgMgOnX9CCI)ho0QeCthOEdMaDH0(dD50PJ8mnwgouCgPCxpHtTbM3GnpN7GMNCU7VC(ePUP9YpI0d6BjbPF8uohYaxyG12kpDN9(r3FVwT2pBky0)fwJl5(7nZlr2V1(12kVmFT9Yj6pjty(Lh0FsMVYxUp)HEs)Yx(YdR(HSBYXdWW3)f4vzbPLA3XpTLOYhQRQ3LHfywcUzQLBZRXcFmKeTbTMUy7Pz7h)jStAzVjKUZpM1BK9cM6mGSFYa68n1LmBXdSAm2YSfze94t4MQh2)r3ACFDqFRGbYY6D7OEFTmoECKnGWDrY2DTiC55qFCy1X6ACsubGFLr5ycE)9MyN3FVSq(eqi)fDFxDyOVzyYLwbDPkAB8qD5z8wHYGp0M9BJJOsjXPdhECuJ180lE3on)SrEYo8NC2iufhVys8uzW2zEwqq)W5IdDfE1SZEWdm7G(Ke9vUmLSh8i5LpWXGda1MIaTHKVZZ(lTVcjBlik33wecvbLxFIqzXmFmoGmJ7S)Zvd3HseGUDQy24VrTSRCyKvtx4YPNp0(qt)Iq6PnYS3tAxVrpxDK89w0XRxASJq3kBICHbPnItHJ(DnKuCvkxdn0znFFXXbMcSOU)A1moFc96VHk(Rg)XaRvo03Ym5Y2jWHEVWMH8EmKyNrDXrYtGActqjs2RrO8spgM7lnxpB)P8YOVntbCHqGNPbCs3UQbVGmwS3akjvES()Joy28rNc(6fQvhYtg6ziuB0OT78FoDKtK82QBMzNjdJvIpGlfNughcdRrN7aqNhU68A20wh1j)eLoJCAspHD55pF85Mz)nmUMSdrg771V4)jIYFvCF77CEKxSwWaG4g14yvPLjnYmXLYMLtrJzdy1J33mDOx3bh02CXCFByE1ueDkcgcaO1fxi8cHIwB(dUM1oXqjRHQKkfsg8iszYnFSZ5aHr1VGMMPOxt5XIx7(FlNZnW2c78ZgIXo3oMu9EbdnE5FYL9Tx7OZNoYjTcBRzAwCYkQr6w2muWWEd6(monSvB8pChPm3lxsL0Ex(gmBA3rH27m(PjJg6zExWh6CmlBzYQvikIWUpvA9PV4wZ7NSupiyly2bg2)xjBRsLO8mMwkjJBKwjE228CO72gyUOvCiWEYNyO(1h2eUUH35Patq(8QrvN(6)aM1NvkrhfeUHsTe7nyWdZ54qwmpgl94H)67GbwP(Q(GD5CrsZJGdlcZNY48ME3K(iliQ16WjzFif)SJzZFQzJZ22ilZrr3X(B5S0b6byRlhpYqvriCsWuSsiCkWMdFPCQ(aAzmcGNpNpuRu)P8mwzvK7ib5YWYi6HWZCWqu9MXwhuMuY76GmnBoZrPv3BkBV7mRjxHNmftizLJ)uzGRfcQ55pmwSWWmgTPQvcre3pq2shyZHz2r9WnzDoyZ(Q5th28jOPIUoryyBECqRit8FxCCQ6IHkcEzGr0loGIW8wQF(NMp9xFukUNN9iwGoK8sDzvuw8KLgYN5l0tOpg)2w1kX7MA0Va4kznUVbjribRssjblUhj8wszDvWq9gW0yljxswKeHgejcQIod(9cCdnqdkadAUN)gAAgEK8UnOprbAUIi6HBWH0s(uWZ0zdnoB(1XT4zkE44D)X152lzX797YRQstRogCP5iMbVo83PvlAdo)1dM8ndSUv767h5SPNpCipJlbI1ATRyy1VQ3KC(Qd6VXnQAvrlG()sa89qE6fmDXQ69agpwJ1(YXQSTXuF7hPBLthl7D6qYZOvlVbMYrJjhXKzoeffnjx)r86xSNkvDQtPFFNY4NwVRtzVx5EoDiQLiSvrsg8v2LilwxBTW3dkDz3uAI9u016M2OyJG2NGiijBww(OzthkN(eX7Huo0zvYQSI0jMDfO3F9EVA6q60DgdPMSg4yzRHfAyHBQqqnMo0u2t74uyj)Pa72jQd7l5ot5MUxTP0Q44rFht6yvHNWnXCUx0EebTpqNnwFGEMlRtkXsyX61Yfb1vBZlwUybn)oqR)ybitsUFgw(F(d]] )

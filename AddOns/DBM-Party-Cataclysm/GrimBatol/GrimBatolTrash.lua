@@ -1,15 +1,15 @@
-if DBM:IsCata() then return end
+if not DBM:IsRetail() then return end
 local mod	= DBM:NewMod("GrimBatolTrash", "DBM-Party-Cataclysm", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240812045014")
+mod:SetRevision("20241005015633")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
 
 mod:RegisterEvents(
 	"SPELL_CAST_START 451871 456696 451939 451378 76711 456711 456713 451387 451067 451391 451965 462216 451971",
-	"SPELL_CAST_SUCCESS 451613 451224 456696 451871 451612 451939 451378 451379 451965 76711 451971 456711 456713 451391",
+	"SPELL_CAST_SUCCESS 451613 451224 456696 451871 451612 451939 451378 451379 451965 76711 451971 456711 456713 451391 462216",
 	"SPELL_INTERRUPT",
 	"SPELL_AURA_APPLIED 451613 451614 451379 451224 451394",
 --	"SPELL_AURA_APPLIED_DOSE",
@@ -32,11 +32,11 @@ local warnMindPiercer					= mod:NewTargetNoFilterAnnounce(451394, 4)
 local specWarnUmbralWind				= mod:NewSpecialWarningSpell(451939, nil, nil, nil, 2, 2)
 local specWarnAscension					= mod:NewSpecialWarningDodge(451387, nil, nil, nil, 2, 2)
 local specWarnObsidianStomp				= mod:NewSpecialWarningDodge(456696, nil, nil, nil, 2, 2)
-local specWarnShadowlavaBlast			= mod:NewSpecialWarningDodge(456711, nil, nil, nil, 2, 2)
+local specWarnShadowlavaBlast			= mod:NewSpecialWarningDodge(456711, nil, nil, nil, 2, 15)
 local specWarnDarkEruption				= mod:NewSpecialWarningDodge(456713, nil, nil, nil, 2, 2)
 local specWarnDecapitate				= mod:NewSpecialWarningDodge(451067, nil, nil, nil, 2, 2)
 local specWarnMindPiercer				= mod:NewSpecialWarningDodge(451391, nil, nil, nil, 2, 2)
-local specWarnBlazingShadowflame		= mod:NewSpecialWarningDodge(462216, nil, nil, nil, 2, 2)
+local specWarnBlazingShadowflame		= mod:NewSpecialWarningDodge(462216, nil, nil, nil, 2, 15)
 local specWarnTwilightFlames			= mod:NewSpecialWarningMoveAway(451612, nil, nil, nil, 2, 2)
 local specWarnLavaFist					= mod:NewSpecialWarningDefensive(451971, nil, nil, nil, 2, 2)--12.8
 local yellTwilightFlames				= mod:NewShortYell(451612)
@@ -47,22 +47,22 @@ local specWarnMassTremor				= mod:NewSpecialWarningInterrupt(451871, "HasInterru
 local specWarnSearMind					= mod:NewSpecialWarningInterrupt(76711, "HasInterrupt", nil, nil, 1, 2)--High Prio
 local specWarnGTFO						= mod:NewSpecialWarningGTFO(451614, nil, nil, nil, 1, 8)
 
-local timerMassTremorCD					= mod:NewCDNPTimer(23, 451871, nil, nil, nil, 2)--Valid August 11
+local timerMassTremorCD					= mod:NewCDPNPTimer(23, 451871, nil, nil, nil, 2)--Valid August 11
 local timerObsidianStompCD				= mod:NewCDNPTimer(17, 456696, nil, nil, nil, 3)--Valid August 11
 local timerTwilightFlamesCD				= mod:NewCDNPTimer(20.6, 451612, nil, nil, nil, 3)--Valid August 11
 local timerUmbralWindCD					= mod:NewCDNPTimer(23, 451939, nil, nil, nil, 2)--Valid August 11
 local timerRecklessTacticCD				= mod:NewCDNPTimer(15.7, 451379, nil, nil, nil, 5, nil, DBM_COMMON_L.ENRAGE_ICON)--Valid August 11
 local timerRiveCD						= mod:NewCDNPTimer(18.1, 451378, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Valid August 11
-local timerShadowlavaBlastCD			= mod:NewCDNPTimer(18.1, 456711, nil, nil, nil, 3)--Valid August 11
+local timerShadowlavaBlastCD			= mod:NewCDPNPTimer(18.1, 456711, nil, nil, nil, 3)--Valid August 11
 local timerDarkEruptionCD				= mod:NewCDNPTimer(20.6, 456713, nil, nil, nil, 3)--Valid August 11
 --local timerAscensionCD				= mod:NewCDNPTimer(20, 451387, nil, nil, nil, 2)--Not able to find a double cast on August 11
 --local timerDecapitateCD				= mod:NewCDNPTimer(18.1, 451067, nil, nil, nil, 3)--Not able to find a single cast on August 11
 local timerEnvelopingShadowflameCD		= mod:NewCDNPTimer(20.6, 451224, nil, nil, nil, 3, nil, DBM_COMMON_L.CURSE_ICON)--Valid August 11. Small Sample, could be shorter
 local timerMindPiercerCD				= mod:NewCDNPTimer(18.1, 451391, nil, nil, nil, 3)--Valid August 11
-local timerSearMindCD					= mod:NewCDNPTimer(20.4, 76711, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Valid August 11
+--local timerSearMindCD					= mod:NewCDPNPTimer(20.4, 76711, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Valid August 11
 local timerMoltenWakeCD					= mod:NewCDNPTimer(18.1, 451965, nil, nil, nil, 2)--Valid August 11
 local timerLavaFistCD					= mod:NewCDNPTimer(15.7, 451971, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Valid August 11
-
+local timerBlazingShadowflameCD			= mod:NewCDPNPTimer(16.0, 462216, nil, nil, nil, 3)--Valid August 21
 --local playerName = UnitName("player")
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 off interrupt, 8 GTFO
@@ -82,6 +82,7 @@ end
 
 
 function mod:SPELL_CAST_START(args)
+	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 451871 then
@@ -115,7 +116,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 456711 then
 		if self:AntiSpam(3, 2) then
 			specWarnShadowlavaBlast:Show()
-			specWarnShadowlavaBlast:Play("shockwave")
+			specWarnShadowlavaBlast:Play("frontal")
 		end
 	elseif spellId == 456713 then
 		if self:AntiSpam(3, 2) then
@@ -150,12 +151,13 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 462216 then
 		if self:AntiSpam(3, 2) then
 			specWarnBlazingShadowflame:Show()
-			specWarnBlazingShadowflame:Play("shockwave")
+			specWarnBlazingShadowflame:Play("frontal")
 		end
 	end
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
+	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 451224 then
@@ -174,8 +176,8 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerRecklessTacticCD:Start(15.2, args.sourceGUID)
 	elseif spellId == 451965 then
 		timerMoltenWakeCD:Start(16.1)--18.1-2
-	elseif spellId == 76711 then
-		timerSearMindCD:Start(18.9, args.sourceGUID)
+	--elseif spellId == 76711 then
+	--	timerSearMindCD:Start(18.9, args.sourceGUID)
 	elseif spellId == 451971 then
 		timerLavaFistCD:Start(12.7, args.sourceGUID)--15.7-3
 	elseif spellId == 456711 then
@@ -184,15 +186,18 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerDarkEruptionCD:Start(17.6, args.sourceGUID)--20.6-3
 	elseif spellId == 451391 then
 		timerMindPiercerCD:Start(15.1, args.sourceGUID)--18.1-3
+	elseif spellId == 462216 then
+		timerBlazingShadowflameCD:Start(16.0, args.sourceGUID)
 	end
 end
 
 function mod:SPELL_INTERRUPT(args)
+	if not self.Options.Enabled then return end
 	if type(args.extraSpellId) ~= "number" then return end
 	if args.extraSpellId == 451871 then
 		timerMassTremorCD:Start(20, args.destGUID)
-	elseif args.extraSpellId == 76711 then
-		timerSearMindCD:Start(18.9, args.sourceGUID)
+	--elseif args.extraSpellId == 76711 then
+	--	timerSearMindCD:Start(18.9, args.destGUID)
 	end
 end
 
@@ -234,6 +239,7 @@ function mod:SPELL_AURA_REMOVED(args)
 end
 
 function mod:UNIT_DIED(args)
+	if not self.Options.Enabled then return end
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 224219 then--Twilight Earthcaller
 		timerMassTremorCD:Stop(args.destGUID)
@@ -249,7 +255,8 @@ function mod:UNIT_DIED(args)
 		timerShadowlavaBlastCD:Stop(args.destGUID)
 		timerDarkEruptionCD:Stop(args.destGUID)
 		--timerAscensionCD:Stop(args.destGUID)
-	--elseif cid == 224240 then--Twilight Decapitator
+	elseif cid == 224240 then--Twilight Flamerender (Formerly decapitator)
+		timerBlazingShadowflameCD:Stop(args.destGUID)
 	--	timerDecapitateCD:Stop(args.destGUID)
 	elseif cid == 224271 then--Twilight Warlock
 		timerEnvelopingShadowflameCD:Stop(args.destGUID)
@@ -258,7 +265,7 @@ function mod:UNIT_DIED(args)
 	elseif cid == 40166 then--Molten Giant
 		timerMoltenWakeCD:Stop(args.destGUID)
 		timerLavaFistCD:Stop(args.destGUID)
-	elseif cid == 40167 then--Twilight Beguiler
-		timerSearMindCD:Stop(args.destGUID)
+	--elseif cid == 40167 then--Twilight Beguiler
+	--	timerSearMindCD:Stop(args.destGUID)
 	end
 end

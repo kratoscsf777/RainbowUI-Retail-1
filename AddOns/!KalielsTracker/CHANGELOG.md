@@ -1,17 +1,11 @@
 # Kaliel's Tracker changelog
-### 7.3.1
-- ADDED (quest) - show the Warband bonus icon on the reward in the tooltip
-- CHANGED - TomTom - minor improvements
-- FIXED (quests) - reward information in the tooltip is sometimes not displayed
-- FIXED - TomTom - green tag is not hidden when switching to Blizzard pin
+### 7.5.0
+- ADDED - support for WoW 11.0.2.56513
+- ADDED - addon support - Auctionator 11.0.11 (search button inside the Profession module header)
+- ADDED - Edit Mode - new positioning system inside Options (with drag and drop and scaling)
+- CHANGED - Masque - initialization
+- CHANGED (filter) - minor improvements
+- CHANGED (quests) - improvement of zone filtering (instance quests)
+- FIXED - bug during init phase with more addons
 - PERFORMANCE (quests) - optimization of sorting code
-- PERFORMANCE - optimization of zone filtering code
-### 7.3.0
-- ADDED (quests) - filter support for Delves (Instance filter)
-- ADDED (scenario) - support for Delves and minor improvements (2)
-- ADDED (quests) - new tag for Delves
-- ADDED (filter) - use Shift+Click in the &quot;F&quot; menu, for incremental filtering of quests (Click only switches between groups of filters)
-- ADDED (scenario) - support for Delves and minor improvements
-- ADDED (quests) - sorting - is on map &gt; zone &gt; level &gt; title
-- CHANGED - TomTom - minor improvements
-- PERFORMANCE (achievements) - optimization of filtering code
+- PERFORMANCE (quests) - improve detect of data for reward information in the tooltip

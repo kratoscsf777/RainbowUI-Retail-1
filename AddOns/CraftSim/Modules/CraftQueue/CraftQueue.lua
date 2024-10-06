@@ -5,9 +5,12 @@ local addonName = select(1, ...)
 local GGUI = CraftSim.GGUI
 local GUTIL = CraftSim.GUTIL
 
+local L = CraftSim.UTIL:GetLocalizer()
+local f = GUTIL:GetFormatter()
+
 ---@class CraftSim.CRAFTQ : Frame
 CraftSim.CRAFTQ = GUTIL:CreateRegistreeForEvents({ "TRADE_SKILL_ITEM_CRAFTED_RESULT", "COMMODITY_PURCHASE_SUCCEEDED",
-    "NEW_RECIPE_LEARNED" })
+    "NEW_RECIPE_LEARNED", "CRAFTINGORDERS_CLAIMED_ORDER_UPDATED", "CRAFTINGORDERS_CLAIMED_ORDER_REMOVED" })
 
 ---@type CraftSim.CraftQueue
 CraftSim.CRAFTQ.craftQueue = nil
@@ -116,6 +119,149 @@ function CraftSim.CRAFTQ:COMMODITY_PURCHASE_SUCCEEDED()
     end
 end
 
+function CraftSim.CRAFTQ:CRAFTINGORDERS_CLAIMED_ORDER_UPDATED()
+    self.UI:UpdateDisplay()
+end
+
+function CraftSim.CRAFTQ:CRAFTINGORDERS_CLAIMED_ORDER_REMOVED()
+    self.UI:UpdateDisplay()
+end
+
+function CraftSim.CRAFTQ:QueuePatronOrders()
+    local profession = C_TradeSkillUI.GetChildProfessionInfo().profession
+    if C_TradeSkillUI.IsNearProfessionSpellFocus(profession) then
+        local request = {
+            orderType = Enum.CraftingOrderType.Npc,
+            searchFavorites = false,
+            initialNonPublicSearch = false,
+            primarySort = {
+                sortType = Enum.CraftingOrderSortType.ItemName,
+                reversed = false,
+            },
+            secondarySort = {
+                sortType = Enum.CraftingOrderSortType.MaxTip,
+                reversed = false,
+            },
+            forCrafter = true,
+            offset = 0,
+            profession = profession,
+            ---@diagnostic disable-next-line: redundant-parameter
+            callback = C_FunctionContainers.CreateCallback(function(result)
+                if result == Enum.CraftingOrderResult.Ok then
+                    local orders = C_CraftingOrders.GetCrafterOrders()
+                    local claimedOrder = C_CraftingOrders.GetClaimedOrder()
+                    if claimedOrder then
+                        tinsert(orders, claimedOrder)
+                    end
+
+                    local queuePatronOrdersButton = CraftSim.CRAFTQ.frame.content.queueTab.content
+                        .addPatronOrdersButton --[[@as GGUI.Button]]
+                    queuePatronOrdersButton:SetEnabled(false)
+
+                    GUTIL.FrameDistributor {
+                        iterationTable = orders,
+                        iterationsPerFrame = 1,
+                        maxIterations = 100,
+                        finally = function()
+                            queuePatronOrdersButton:SetText(L(CraftSim.CONST.TEXT
+                                .CRAFT_QUEUE_ADD_PATRON_ORDERS_BUTTON_LABEL))
+                            queuePatronOrdersButton:SetEnabled(true)
+                        end,
+                        continue = function(distributor, _, order, _, progress)
+                            queuePatronOrdersButton:SetText(string.format("%.0f%%", progress))
+
+                            local recipeInfo = C_TradeSkillUI.GetRecipeInfo(order.spellID)
+                            if recipeInfo and recipeInfo.learned then
+                                local recipeData = CraftSim.RecipeData({ recipeID = order.spellID })
+
+                                if CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_PATRON_ORDERS_IGNORE_SPARK_RECIPES") then
+                                    if recipeData.reagentData:HasSparkSlot() then
+                                        if recipeData.reagentData.sparkReagentSlot.activeReagent then
+                                            if not recipeData.reagentData.sparkReagentSlot.activeReagent:IsOrderReagentIn(recipeData) then
+                                                distributor:Continue()
+                                                return
+                                            end
+                                        end
+                                    end
+                                end
+
+                                recipeData:SetOrder(order)
+
+                                if CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_PATRON_ORDERS_KNOWLEDGE_POINTS_ONLY") then
+                                    if recipeData.orderData and recipeData.orderData.npcOrderRewards then
+                                        local hasKnowledgeReward = GUTIL:Some(recipeData.orderData.npcOrderRewards,
+                                            function(reward)
+                                                local itemID = GUTIL:GetItemIDByLink(reward.itemLink)
+                                                return tContains(CraftSim.CONST.PATRON_ORDERS_KNOWLEDGE_REWARD_ITEMS,
+                                                    itemID)
+                                            end)
+                                        if not hasKnowledgeReward then
+                                            distributor:Continue()
+                                            return
+                                        end
+                                    end
+                                end
+
+                                recipeData:SetCheapestQualityReagentsMax() -- considers patron reagents
+                                recipeData:Update()
+
+                                local function queueRecipe()
+                                    local allowConcentration = CraftSim.DB.OPTIONS:Get(
+                                        "CRAFTQUEUE_PATRON_ORDERS_ALLOW_CONCENTRATION")
+                                    local forceConcentration = CraftSim.DB.OPTIONS:Get(
+                                        "CRAFTQUEUE_PATRON_ORDERS_FORCE_CONCENTRATION")
+                                    -- TODO: allow queuing with concentration and concentration optimization in queue options
+                                    -- check if the min quality is reached, if not do not queue
+                                    if recipeData.resultData.expectedQuality >= order.minQuality then
+                                        CraftSim.CRAFTQ:AddRecipe { recipeData = recipeData }
+                                    end
+
+                                    if (forceConcentration or allowConcentration) and
+                                        recipeData.resultData.expectedQualityConcentration == order.minQuality then
+                                        -- use concentration to reach and then queue
+                                        recipeData.concentrating = true
+                                        recipeData:Update()
+                                        CraftSim.CRAFTQ:AddRecipe { recipeData = recipeData }
+                                    end
+
+                                    distributor:Continue()
+                                end
+                                -- try to optimize for target quality
+                                if order.minQuality then
+                                    if CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_PATRON_ORDERS_FORCE_CONCENTRATION") then
+                                        RunNextFrame(
+                                            function()
+                                                recipeData:OptimizeReagents({
+                                                    maxQuality = math.max(order.minQuality - 1, 1)
+                                                })
+                                                queueRecipe()
+                                            end
+                                        )
+                                    else
+                                        RunNextFrame(
+                                            function()
+                                                recipeData:OptimizeReagents({
+                                                    maxQuality = order.minQuality
+                                                })
+                                                queueRecipe()
+                                            end
+                                        )
+                                    end
+                                else
+                                    queueRecipe()
+                                end
+                            else
+                                distributor:Continue()
+                            end
+                        end
+                    }:Continue()
+                end
+            end),
+        }
+        C_CraftingOrders.RequestCrafterOrders(request)
+    end
+end
+
 function CraftSim.CRAFTQ:InitializeCraftQueue()
     -- load from Saved Variables
     CraftSim.CRAFTQ.craftQueue = CraftSim.CraftQueue()
@@ -157,6 +303,10 @@ function CraftSim.CRAFTQ.ImportRecipeScanFilter(recipeData) -- . accessor instea
 
     local restockOptions = CraftSim.CRAFTQ:GetRestockOptionsForRecipe(recipeData.recipeID)
 
+    recipeData.concentrating = CraftSim.DB.OPTIONS:Get("RECIPESCAN_ENABLE_CONCENTRATION")
+    recipeData:Update() -- update recipe before importing
+
+
     if not restockOptions.enabled then
         print("restockOptions.disabled")
         -- use general options
@@ -169,6 +319,7 @@ function CraftSim.CRAFTQ.ImportRecipeScanFilter(recipeData) -- . accessor instea
             CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_GENERAL_RESTOCK_SALE_RATE_THRESHOLD"))
         print("profitThresholdReached: " .. tostring(profitThresholdReached))
         print("saleRateReached: " .. tostring(saleRateReached))
+        print("relativeProfitCached: " .. tostring(recipeData.relativeProfitCached))
         local include = profitThresholdReached and saleRateReached
         if include then
             print(f.g("include"))
@@ -190,6 +341,7 @@ function CraftSim.CRAFTQ.ImportRecipeScanFilter(recipeData) -- . accessor instea
 
     print("profitMarginReached: " .. tostring(profitMarginReached))
     print("saleRateReached: " .. tostring(saleRateReached))
+    print("relativeProfitCached: " .. tostring(recipeData.relativeProfitCached))
 
     local include = profitMarginReached and saleRateReached
     if include then
@@ -212,7 +364,8 @@ function CraftSim.CRAFTQ:ImportRecipeScan()
         local filteredRecipes = GUTIL:Filter(selectedRow.currentResults, CraftSim.CRAFTQ.ImportRecipeScanFilter)
         for _, recipeData in pairs(filteredRecipes) do
             local restockOptions = CraftSim.CRAFTQ:GetRestockOptionsForRecipe(recipeData.recipeID)
-            local restockAmount = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_GENERAL_RESTOCK_RESTOCK_AMOUNT")
+            local restockAmount = CraftSim.CRAFTQ:GetRestockQuantity(recipeData.resultData.expectedItem)
+
             if restockOptions.enabled then
                 restockAmount = restockOptions.restockAmount
 
@@ -267,7 +420,8 @@ function CraftSim.CRAFTQ:ImportRecipeScan()
                 local filteredRecipes = GUTIL:Filter(row.currentResults, CraftSim.CRAFTQ.ImportRecipeScanFilter)
                 for _, recipeData in pairs(filteredRecipes) do
                     local restockOptions = CraftSim.CRAFTQ:GetRestockOptionsForRecipe(recipeData.recipeID)
-                    local restockAmount = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_GENERAL_RESTOCK_RESTOCK_AMOUNT")
+                    local restockAmount = CraftSim.CRAFTQ:GetRestockQuantity(recipeData.resultData.expectedItem)
+
                     if restockOptions.enabled then
                         restockAmount = restockOptions.restockAmount
 
@@ -338,14 +492,6 @@ function CraftSim.CRAFTQ:GetNonSoulboundAlternativeItemID(itemID)
     return itemID
 end
 
-function CraftSim.CRAFTQ:CreateAuctionatorShoppingList()
-    if CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_SHOPPING_LIST_PER_CHARACTER") then
-        CraftSim.CRAFTQ.CreateAuctionatorShoppingListPerCharacter()
-    else
-        CraftSim.CRAFTQ.CreateAuctionatorShoppingListAll()
-    end
-end
-
 --- depricate as soon as there is an api for it
 function CraftSim.CRAFTQ:DeleteAuctionatorShoppingList(listName)
     local listExists = Auctionator.Shopping.ListManager:GetIndexForName(listName)
@@ -365,108 +511,7 @@ function CraftSim.CRAFTQ:DeleteAllCraftSimShoppingLists()
     end
 end
 
-function CraftSim.CRAFTQ.CreateAuctionatorShoppingListPerCharacter()
-    print("CraftSim.CRAFTQ:CreateAuctionatorShoppingListPerCharacter", false, true)
-
-    CraftSim.CRAFTQ:DeleteAllCraftSimShoppingLists()
-
-    CraftSim.DEBUG:StartProfiling("CreateAuctionatorShoppingListPerCharacter")
-    local reagentMapPerCharacter = {}
-    -- create a map of all used reagents in the queue and their quantity
-    for _, craftQueueItem in pairs(CraftSim.CRAFTQ.craftQueue.craftQueueItems) do
-        local requiredReagents = craftQueueItem.recipeData.reagentData.requiredReagents
-        local crafterUID = craftQueueItem.recipeData:GetCrafterUID()
-        reagentMapPerCharacter[crafterUID] = reagentMapPerCharacter[crafterUID] or {}
-        for _, reagent in pairs(requiredReagents) do
-            if reagent.hasQuality then
-                for qualityID, reagentItem in pairs(reagent.items) do
-                    local itemID = reagentItem.item:GetItemID()
-                    local isSelfCrafted = craftQueueItem.recipeData:IsSelfCraftedReagent(itemID)
-                    if not isSelfCrafted then
-                        reagentMapPerCharacter[crafterUID][itemID] = reagentMapPerCharacter
-                            [crafterUID][itemID] or {
-                                itemName = reagentItem.item:GetItemName(),
-                                qualityID = nil,
-                                quantity = 0
-                            }
-                        reagentMapPerCharacter[crafterUID][itemID].quantity = reagentMapPerCharacter
-                            [crafterUID][itemID]
-                            .quantity + (reagentItem.quantity * craftQueueItem.amount)
-                        reagentMapPerCharacter[crafterUID][itemID].qualityID = qualityID
-                    end
-                end
-            else
-                local reagentItem = reagent.items[1]
-                local itemID = reagentItem.item:GetItemID()
-                local isSelfCrafted = craftQueueItem.recipeData:IsSelfCraftedReagent(itemID)
-                if not isSelfCrafted then
-                    reagentMapPerCharacter[crafterUID][itemID] = reagentMapPerCharacter
-                        [crafterUID]
-                        [itemID] or {
-                            itemName = reagentItem.item:GetItemName(),
-                            qualityID = nil,
-                            quantity = 0
-                        }
-                    reagentMapPerCharacter[crafterUID][itemID].quantity = reagentMapPerCharacter
-                        [crafterUID][itemID].quantity +
-                        (reagentItem.quantity * craftQueueItem.amount)
-                    print("reagentMap Build: " .. tostring(reagentItem.item:GetItemLink()))
-                    print("quantity: " ..
-                        tostring(reagentMapPerCharacter[crafterUID][itemID].quantity))
-                end
-            end
-        end
-        local activeReagents = craftQueueItem.recipeData.reagentData:GetActiveOptionalReagents()
-        for _, optionalReagent in pairs(activeReagents) do
-            local itemID = optionalReagent.item:GetItemID()
-            local isSelfCrafted = craftQueueItem.recipeData:IsSelfCraftedReagent(itemID)
-            if not isSelfCrafted and not GUTIL:isItemSoulbound(itemID) then
-                reagentMapPerCharacter[crafterUID][itemID] = reagentMapPerCharacter
-                    [crafterUID][itemID] or {
-                        itemName = optionalReagent.item:GetItemName(),
-                        qualityID = optionalReagent.qualityID,
-                        quantity = 0
-                    }
-                reagentMapPerCharacter[crafterUID][itemID].quantity = reagentMapPerCharacter
-                    [crafterUID][itemID]
-                    .quantity + craftQueueItem.amount
-            end
-        end
-    end
-
-    for crafterUID, reagentMap in pairs(reagentMapPerCharacter) do
-        --- convert to Auctionator Search Strings and deduct item count
-        local searchStrings = GUTIL:Map(reagentMap, function(info, itemID)
-            itemID = CraftSim.CRAFTQ:GetNonSoulboundAlternativeItemID(itemID)
-            if not itemID then
-                return nil
-            else
-                info.itemName = select(1, C_Item.GetItemInfo(itemID)) -- 100% already loaded in this case when its used as alt item in ReagentItem
-            end
-
-            local itemCount = CraftSim.ITEM_COUNT:Get(crafterUID, itemID)
-            local searchTerm = {
-                searchString = info.itemName,
-                tier = info.qualityID,
-                quantity = math.max(info.quantity - itemCount, 0),
-                isExact = true,
-            }
-            if searchTerm.quantity == 0 then
-                return nil -- do not put into table
-            end
-            local searchString = Auctionator.API.v1.ConvertToSearchString(addonName, searchTerm)
-            return searchString
-        end)
-        Auctionator.API.v1.CreateShoppingList(addonName,
-            CraftSim.CONST.AUCTIONATOR_SHOPPING_LIST_QUEUE_NAME .. " " .. tostring(crafterUID),
-            searchStrings)
-    end
-
-
-    CraftSim.DEBUG:StopProfiling("CreateAuctionatorShoppingListPerCharacter")
-end
-
-function CraftSim.CRAFTQ.CreateAuctionatorShoppingListAll()
+function CraftSim.CRAFTQ.CreateAuctionatorShoppingList()
     print("CraftSim.CRAFTQ:CreateAuctionatorShoppingList", false, true)
 
     CraftSim.CRAFTQ:DeleteAllCraftSimShoppingLists()
@@ -477,10 +522,26 @@ function CraftSim.CRAFTQ.CreateAuctionatorShoppingListAll()
     for _, craftQueueItem in pairs(CraftSim.CRAFTQ.craftQueue.craftQueueItems) do
         local requiredReagents = craftQueueItem.recipeData.reagentData.requiredReagents
         for _, reagent in pairs(requiredReagents) do
-            if reagent.hasQuality then
-                for qualityID, reagentItem in pairs(reagent.items) do
+            if not reagent:IsOrderReagentIn(craftQueueItem.recipeData) then
+                if reagent.hasQuality then
+                    for qualityID, reagentItem in pairs(reagent.items) do
+                        local itemID = reagentItem.item:GetItemID()
+                        print("Shopping List Creation: Item: " .. (reagentItem.item:GetItemLink() or ""))
+                        local isSelfCrafted = craftQueueItem.recipeData:IsSelfCraftedReagent(itemID)
+                        if not isSelfCrafted then
+                            reagentMap[itemID] = reagentMap[itemID] or {
+                                itemName = reagentItem.item:GetItemName(),
+                                qualityID = nil,
+                                quantity = 0
+                            }
+                            reagentMap[itemID].quantity = reagentMap[itemID]
+                                .quantity + (reagentItem.quantity * craftQueueItem.amount)
+                            reagentMap[itemID].qualityID = qualityID
+                        end
+                    end
+                else
+                    local reagentItem = reagent.items[1]
                     local itemID = reagentItem.item:GetItemID()
-                    print("Shopping List Creation: Item: " .. (reagentItem.item:GetItemLink() or ""))
                     local isSelfCrafted = craftQueueItem.recipeData:IsSelfCraftedReagent(itemID)
                     if not isSelfCrafted then
                         reagentMap[itemID] = reagentMap[itemID] or {
@@ -488,40 +549,36 @@ function CraftSim.CRAFTQ.CreateAuctionatorShoppingListAll()
                             qualityID = nil,
                             quantity = 0
                         }
-                        reagentMap[itemID].quantity = reagentMap[itemID]
-                            .quantity + (reagentItem.quantity * craftQueueItem.amount)
-                        reagentMap[itemID].qualityID = qualityID
+                        reagentMap[itemID].quantity = reagentMap[itemID].quantity +
+                            (reagentItem.quantity * craftQueueItem.amount)
+                        print("reagentMap Build: " .. tostring(reagentItem.item:GetItemLink()))
+                        print("quantity: " .. tostring(reagentMap[itemID].quantity))
                     end
-                end
-            else
-                local reagentItem = reagent.items[1]
-                local itemID = reagentItem.item:GetItemID()
-                local isSelfCrafted = craftQueueItem.recipeData:IsSelfCraftedReagent(itemID)
-                if not isSelfCrafted then
-                    reagentMap[itemID] = reagentMap[itemID] or {
-                        itemName = reagentItem.item:GetItemName(),
-                        qualityID = nil,
-                        quantity = 0
-                    }
-                    reagentMap[itemID].quantity = reagentMap[itemID].quantity +
-                        (reagentItem.quantity * craftQueueItem.amount)
-                    print("reagentMap Build: " .. tostring(reagentItem.item:GetItemLink()))
-                    print("quantity: " .. tostring(reagentMap[itemID].quantity))
                 end
             end
         end
         local activeReagents = craftQueueItem.recipeData.reagentData:GetActiveOptionalReagents()
+        local quantityMap = {} -- ugly hack.. TODO refactor
+        if craftQueueItem.recipeData.reagentData:HasSparkSlot() then
+            if craftQueueItem.recipeData.reagentData.sparkReagentSlot.activeReagent then
+                tinsert(activeReagents, craftQueueItem.recipeData.reagentData.sparkReagentSlot.activeReagent)
+                quantityMap[craftQueueItem.recipeData.reagentData.sparkReagentSlot.activeReagent.item:GetItemID()] =
+                    craftQueueItem.recipeData.reagentData.sparkReagentSlot.maxQuantity or 1
+            end
+        end
         for _, optionalReagent in pairs(activeReagents) do
             local itemID = optionalReagent.item:GetItemID()
             local isSelfCrafted = craftQueueItem.recipeData:IsSelfCraftedReagent(itemID)
-            if not isSelfCrafted and not GUTIL:isItemSoulbound(itemID) then
+            local isOrderReagent = optionalReagent:IsOrderReagentIn(craftQueueItem.recipeData)
+            local qualityID = C_TradeSkillUI.GetItemReagentQualityByItemInfo(itemID)
+            if not isOrderReagent and not isSelfCrafted and not GUTIL:isItemSoulbound(itemID) then
                 reagentMap[itemID] = reagentMap[itemID] or {
                     itemName = optionalReagent.item:GetItemName(),
-                    qualityID = optionalReagent.qualityID,
-                    quantity = 0
+                    qualityID = qualityID,
+                    quantity = quantityMap[itemID] or 1
                 }
                 reagentMap[itemID].quantity = reagentMap[itemID]
-                    .quantity + craftQueueItem.amount
+                    .quantity * craftQueueItem.amount
             end
         end
     end
@@ -618,6 +675,31 @@ function CraftSim.CRAFTQ:GetRestockOptionsForRecipe(recipeID)
     return restockPerRecipeOptions[recipeID]
 end
 
+-- Function to determine the restock quantity for a given expected item.
+--
+-- This function retrieves the default restock amount from the database options.
+-- If a custom restock key for TSM (TradeSkillMaster) is specified, it attempts to get the restock amount
+-- using the TSM API based on the expected item's link. If a valid restock amount is found, it returns that value.
+-- Otherwise, it falls back to the default restock amount.
+--
+---@param expectedItem ItemMixin The item for which the restock quantity is being determined.
+---@return number restockAmount Restock quantity for the given expected item.
+function CraftSim.CRAFTQ:GetRestockQuantity(expectedItem)
+    local defaultRestockAmount = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_GENERAL_RESTOCK_RESTOCK_AMOUNT") or 1
+    local tsmExpressionEnabled = CraftSim.DB.OPTIONS:Get("TSM_RESTOCK_KEY_ITEMS_ENABLED")
+    if tsmExpressionEnabled and TSM_API and expectedItem and CraftSim.DB.OPTIONS:Get("TSM_RESTOCK_KEY_ITEMS") ~= "" then
+        local restockAmount = TSM_API.GetCustomPriceValue(CraftSim.DB.OPTIONS:Get("TSM_RESTOCK_KEY_ITEMS"),
+            TSM_API.ToItemString(expectedItem:GetItemLink()))
+        if restockAmount ~= nil then
+            return restockAmount
+        else
+            return defaultRestockAmount
+        end
+    else
+        return defaultRestockAmount
+    end
+end
+
 ---@param recipeData CraftSim.RecipeData
 ---@param usedQualitiesTable table<number, boolean>?
 ---@param saleRateThreshold number
@@ -651,8 +733,8 @@ function CraftSim.CRAFTQ:CheckSaleRateThresholdForRecipe(recipeData, usedQualiti
     return false
 end
 
---- Called by the AddCurrentRecipeButton
-function CraftSim.CRAFTQ:AddOpenRecipe()
+function CraftSim.CRAFTQ:QueueOpenRecipe()
+    ---@type CraftSim.RecipeData
     local recipeData
     if CraftSim.SIMULATION_MODE.isActive then
         if CraftSim.SIMULATION_MODE.recipeData then
@@ -660,7 +742,7 @@ function CraftSim.CRAFTQ:AddOpenRecipe()
         end
     else
         if CraftSim.INIT.currentRecipeData then
-            recipeData = CraftSim.INIT.currentRecipeData
+            recipeData = CraftSim.INIT.currentRecipeData:Copy()
         end
     end
 
@@ -668,7 +750,83 @@ function CraftSim.CRAFTQ:AddOpenRecipe()
         return
     end
 
-    CraftSim.CRAFTQ:AddRecipe({ recipeData = recipeData })
+    local exportMode = CraftSim.UTIL:GetExportModeByVisibility()
+    local queueButton
+    if exportMode == CraftSim.CONST.EXPORT_MODE.NON_WORK_ORDER then
+        queueButton = CraftSim.CRAFTQ.queueRecipeButton
+    else
+        queueButton = CraftSim.CRAFTQ.queueRecipeButtonWO
+    end
+
+    local optimizeTopProfit = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_TOP_PROFIT_QUALITY")
+    local optimizeGear = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_PROFESSION_GEAR")
+    local optimizeConcentration = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_CONCENTRATION")
+
+    if optimizeConcentration and recipeData.supportsQualities then
+        recipeData.concentrating = true
+        recipeData:Update()
+    end
+
+    if optimizeGear then
+        recipeData:OptimizeGear(CraftSim.TOPGEAR:GetSimMode(CraftSim.TOPGEAR.SIM_MODES.PROFIT))
+    end
+
+    if optimizeTopProfit then
+        recipeData:OptimizeReagents {
+            highestProfit = true,
+        }
+    end
+
+    if optimizeConcentration and recipeData.supportsQualities then
+        queueButton:SetEnabled(false)
+        recipeData:OptimizeConcentration {
+            frameDistributedCallback = function()
+                queueButton:SetEnabled(true)
+                queueButton:SetText("+ CraftQueue")
+                CraftSim.CRAFTQ:AddRecipe({ recipeData = recipeData })
+            end,
+            progressUpdateCallback = function(progress)
+                queueButton:SetText(string.format("%.0f%%", progress))
+            end
+        }
+    else
+        CraftSim.CRAFTQ:AddRecipe({ recipeData = recipeData })
+    end
+end
+
+function CraftSim.CRAFTQ:ShowQueueOpenRecipeOptions()
+    MenuUtil.CreateContextMenu(UIParent, function(ownerRegion, rootDescription)
+        local recipeData = CraftSim.INIT.currentRecipeData
+        if not recipeData then return end
+        if recipeData.supportsQualities then
+            rootDescription:CreateCheckbox(
+                "Optimize " .. f.g("Top Profit Quality"),
+                function()
+                    return CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_TOP_PROFIT_QUALITY")
+                end, function()
+                    local value = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_TOP_PROFIT_QUALITY")
+                    CraftSim.DB.OPTIONS:Save("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_TOP_PROFIT_QUALITY", not value)
+                end)
+        end
+        rootDescription:CreateCheckbox(
+            "Optimize " .. f.bb("Profession Gear"),
+            function()
+                return CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_PROFESSION_GEAR")
+            end, function()
+                local value = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_PROFESSION_GEAR")
+                CraftSim.DB.OPTIONS:Save("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_PROFESSION_GEAR", not value)
+            end)
+        if recipeData.supportsQualities then
+            rootDescription:CreateCheckbox(
+                "Optimize " .. f.gold("Concentration"),
+                function()
+                    return CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_CONCENTRATION")
+                end, function()
+                    local value = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_CONCENTRATION")
+                    CraftSim.DB.OPTIONS:Save("CRAFTQUEUE_QUEUE_OPEN_RECIPE_OPTIMIZE_CONCENTRATION", not value)
+                end)
+        end
+    end)
 end
 
 function CraftSim.CRAFTQ:AddFirstCrafts()
@@ -684,17 +842,30 @@ function CraftSim.CRAFTQ:AddFirstCrafts()
         return nil
     end)
 
-    GUTIL:FrameDistributedIteration(firstCraftRecipeIDs, function(_, recipeID, counter)
-        local recipeData = CraftSim.RecipeData(recipeID, false, false)
-        local isSkillLine = recipeData.professionData.skillLineID == currentSkillLineID
-        local ignoreAcuity = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_FIRST_CRAFTS_IGNORE_ACUITY_RECIPES")
-        local usesAcuity = recipeData.reagentData:HasOneOfReagents({ CraftSim.CONST.ITEM_IDS.CURRENCY.ARTISANS_ACUITY })
-        local queueRecipe = isSkillLine and (not ignoreAcuity or not usesAcuity)
-        if queueRecipe then
-            recipeData.reagentData:SetReagentsMaxByQuality(1)
-            self:AddRecipe({ recipeData = recipeData })
+    GUTIL.FrameDistributor {
+        iterationsPerFrame = 2,
+        iterationTable = firstCraftRecipeIDs,
+        continue = function(frameDistributor, _, recipeID, _, _)
+            local recipeData = CraftSim.RecipeData({ recipeID = recipeID })
+            local isSkillLine = recipeData.professionData.skillLineID == currentSkillLineID
+            local ignoreAcuity = CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_FIRST_CRAFTS_IGNORE_ACUITY_RECIPES")
+            local usesAcuity = recipeData.reagentData:HasOneOfReagents({ CraftSim.CONST.ITEM_IDS.CURRENCY
+                .ARTISANS_ACUITY })
+            local queueRecipe = isSkillLine and (not ignoreAcuity or not usesAcuity)
+            if queueRecipe then
+                if CraftSim.DB.OPTIONS:Get("CRAFTQUEUE_FIRST_CRAFTS_IGNORE_SPARK_RECIPES") then
+                    if recipeData.reagentData:HasSparkSlot() then
+                        frameDistributor:Continue()
+                        return
+                    end
+                end
+
+                recipeData.reagentData:SetReagentsMaxByQuality(1)
+                self:AddRecipe({ recipeData = recipeData })
+                frameDistributor:Continue()
+            end
         end
-    end)
+    }:Continue()
 end
 
 function CraftSim.CRAFTQ:OnRecipeEditSave()

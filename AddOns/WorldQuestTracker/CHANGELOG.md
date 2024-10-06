@@ -1,6 +1,6 @@
 # World Quest Tracker
 
-## [v11.0.2.517](https://github.com/Tercioo/World-Quest-Tracker/tree/v11.0.2.517) (2024-08-30)
-[Full Changelog](https://github.com/Tercioo/World-Quest-Tracker/compare/v11.0.2.516...v11.0.2.517) 
+## [v11.0.2.520](https://github.com/Tercioo/World-Quest-Tracker/tree/v11.0.2.520) (2024-09-11)
+[Full Changelog](https://github.com/Tercioo/World-Quest-Tracker/compare/v11.0.2.519...v11.0.2.520) 
 
-- Added options to adjust the quest location size per world maps  
+- Added no warband rep marker; Added show quest hub per world map option  

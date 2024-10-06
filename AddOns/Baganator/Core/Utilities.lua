@@ -29,23 +29,21 @@ do
   end
 end
 
-function addonTable.Utilities.GetCharacterFullName()
-  local characterName, realm = UnitFullName("player")
-  return characterName .. "-" .. realm
-end
-
 local queue = {}
 local reporter = CreateFrame("Frame")
-reporter:SetScript("OnUpdate", function()
+function reporter:OnUpdate()
   if #queue > 0 then
     for _, entry in ipairs(queue) do
       print(entry[1], entry[2])
     end
     queue = {}
+  else
+    self:SetScript("OnUpdate", nil)
   end
-end)
+end
 function addonTable.Utilities.DebugOutput(label, value)
   table.insert(queue, {label, value})
+  reporter:SetScript("OnUpdate", reporter.OnUpdate)
 end
 
 local pendingItems = {}

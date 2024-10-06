@@ -57,7 +57,9 @@ function CraftSim.CRAFT_BUFFS.UI:Init()
         offsetX = offsetX,
         frameID = CraftSim.CONST.FRAMES.CRAFT_BUFFS_WORKORDER,
         title = CraftSim.LOCAL:GetText(CraftSim.CONST.TEXT.CRAFT_BUFFS_TITLE) ..
-            " " .. CraftSim.GUTIL:ColorizeText("WO", CraftSim.GUTIL.COLORS.GREY),
+            " " ..
+            CraftSim.GUTIL:ColorizeText(CraftSim.LOCAL:GetText(CraftSim.CONST.TEXT.SOURCE_COLUMN_WO),
+                CraftSim.GUTIL.COLORS.GREY),
         collapseable = true,
         closeable = true,
         moveable = true,
@@ -78,24 +80,19 @@ function CraftSim.CRAFT_BUFFS.UI:Init()
         frame.content = frame.content
 
         frame.content.simulateBuffSelector = GGUI.CheckboxSelector {
-            buttonOptions = {
-                parent = frame.content, anchorParent = frame.title.frame, anchorA = "TOP", anchorB = "BOTTOM", offsetY = -5,
-                adjustWidth = true, sizeX = 15, label = CraftSim.LOCAL:GetText(CraftSim.CONST.TEXT.CRAFT_BUFFS_SIMULATE_BUTTON)
-            },
-            selectionFrameOptions = {
-                backdropOptions = CraftSim.CONST.DEFAULT_BACKDROP_OPTIONS, closeable = true,
-                sizeX = 330, anchorA = "BOTTOM", anchorB = "TOP",
-            },
+            parent = frame.content, anchorPoints = { { anchorParent = frame.title.frame, anchorA = "TOP", anchorB = "BOTTOM", offsetY = -5 } },
+            sizeX = 30, sizeY = 25,
+            label = CraftSim.LOCAL:GetText(CraftSim.CONST.TEXT.CRAFT_BUFFS_SIMULATE_BUTTON),
             savedVariablesTable = CraftSim.CRAFT_BUFFS.simulatedBuffs,
             onSelectCallback = function()
                 CraftSim.INIT:TriggerModuleUpdate()
-            end
+            end,
         }
 
         frame.content.simulateBuffSelector:SetEnabled(false)
 
         frame.content.buffList = GGUI.FrameList {
-            parent = frame.content, anchorParent = frame.content.simulateBuffSelector.button.frame, anchorA = "TOP", anchorB = "BOTTOM", sizeY = 127, offsetY = -5, showBorder = true,
+            parent = frame.content, anchorParent = frame.content.simulateBuffSelector.frame, anchorA = "TOP", anchorB = "BOTTOM", sizeY = 127, offsetY = -5, showBorder = true,
             offsetX = -10, selectionOptions = { noSelectionColor = true, hoverRGBA = CraftSim.CONST.FRAME_LIST_SELECTION_COLORS.HOVER_LIGHT_WHITE }, rowHeight = 20,
             columnOptions = {
                 {

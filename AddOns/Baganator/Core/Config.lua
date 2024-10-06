@@ -27,8 +27,12 @@ addonTable.Config.Options = {
   AUTO_SORT_ON_OPEN = "auto_sort_on_open",
   BAG_EMPTY_SPACE_AT_TOP = "bag_empty_space_at_top",
   REDUCE_SPACING = "reduce_spacing",
+  CURRENCY_HEADERS_COLLAPSED = "currency_headers_collapsed",
+  CURRENCIES_TRACKED = "currencies_tracked",
+  CURRENCIES_TRACKED_IMPORTED = "currencies_tracked_imported",
 
   WARBAND_CURRENT_TAB = "warband_current_tab",
+  GUILD_CURRENT_TAB = "guild_current_tab",
 
   RECENT_CHARACTERS_MAIN_VIEW = "recent_characters_main_view",
 
@@ -57,6 +61,7 @@ addonTable.Config.Options = {
   GUILD_VIEW_DIALOG_POSITION = "guild_view_dialog_position",
   SHOW_BUTTONS_ON_ALT = "show_buttons_on_alt",
   CHARACTER_SELECT_POSITION = "character_select_position",
+  CURRENCY_PANEL_POSITION = "currency_panel_position",
   SETTING_ANCHORS = "setting_anchors",
 
   DEBUG_TIMERS = "debug_timers",
@@ -71,15 +76,16 @@ addonTable.Config.Options = {
   CUSTOM_CATEGORIES = "custom_categories",
   CATEGORY_MODIFICATIONS = "category_modifications",
   CATEGORY_MIGRATION = "category_migration",
+  CATEGORY_DEFAULT_IMPORT = "category_default_import",
   AUTOMATIC_CATEGORIES_ADDED = "automatic_categories_added",
   CATEGORY_DISPLAY_ORDER = "category_display_order",
   CATEGORY_HIDDEN = "category_hidden",
   CATEGORY_SECTION_TOGGLED = "category_section_toggled",
-  CATEGORY_HORIZONTAL_SPACING = "category_horizontal_spacing",
+  CATEGORY_HORIZONTAL_SPACING = "category_horizontal_spacing_2",
   CATEGORY_ITEM_GROUPING = "category_item_grouping",
   CATEGORY_GROUP_EMPTY_SLOTS = "category_group_empty_slots",
   RECENT_TIMEOUT = "recent_timeout",
-  ADD_TO_CATEGORY_BUTTONS = "add_to_category_buttons",
+  ADD_TO_CATEGORY_BUTTONS = "add_to_category_buttons_2",
 }
 
 addonTable.Config.Defaults = {
@@ -108,6 +114,7 @@ addonTable.Config.Defaults = {
   [addonTable.Config.Options.GUILD_VIEW_POSITION] = {"LEFT", 20, 0},
   [addonTable.Config.Options.GUILD_VIEW_DIALOG_POSITION] = {"BOTTOM", "Baganator_GuildViewFrame", "TOP", 0, 0},
   [addonTable.Config.Options.CHARACTER_SELECT_POSITION] = {"RIGHT", "Baganator_BackpackViewFrame", "LEFT", 0, 0},
+  [addonTable.Config.Options.CURRENCY_PANEL_POSITION] = {"RIGHT", "Baganator_BackpackViewFrame", "LEFT", 0, 0},
   [addonTable.Config.Options.ICON_TEXT_FONT_SIZE] = 18, -- 更改預設值
   [addonTable.Config.Options.ICON_TOP_LEFT_CORNER_ARRAY] = {"junk", "item_level"},
   [addonTable.Config.Options.ICON_TOP_RIGHT_CORNER_ARRAY] = {},
@@ -136,6 +143,10 @@ addonTable.Config.Defaults = {
   [addonTable.Config.Options.UPGRADE_PLUGINS_IGNORED] = {},
   [addonTable.Config.Options.SETTING_ANCHORS] = false,
   [addonTable.Config.Options.WARBAND_CURRENT_TAB] = 1,
+  [addonTable.Config.Options.GUILD_CURRENT_TAB] = 1,
+  [addonTable.Config.Options.CURRENCY_HEADERS_COLLAPSED] = {},
+  [addonTable.Config.Options.CURRENCIES_TRACKED] = {},
+  [addonTable.Config.Options.CURRENCIES_TRACKED_IMPORTED] = 0,
 
   [addonTable.Config.Options.DEBUG_TIMERS] = false,
   [addonTable.Config.Options.DEBUG_KEYWORDS] = false,
@@ -166,20 +177,23 @@ addonTable.Config.Defaults = {
     ]]
   },
   [addonTable.Config.Options.CATEGORY_MIGRATION] = 0,
+  [addonTable.Config.Options.CATEGORY_DEFAULT_IMPORT] = 0,
   [addonTable.Config.Options.AUTOMATIC_CATEGORIES_ADDED] = {},
   [addonTable.Config.Options.CATEGORY_DISPLAY_ORDER] = {},
   [addonTable.Config.Options.CATEGORY_HIDDEN] = {},
   [addonTable.Config.Options.CATEGORY_SECTION_TOGGLED] = {},
-  [addonTable.Config.Options.CATEGORY_HORIZONTAL_SPACING] = 0.15,
-  [addonTable.Config.Options.CATEGORY_ITEM_GROUPING] = false, -- -- 更改預設值
+  [addonTable.Config.Options.CATEGORY_HORIZONTAL_SPACING] = 0.30,
+  [addonTable.Config.Options.CATEGORY_ITEM_GROUPING] = false, -- 更改預設值,
   [addonTable.Config.Options.CATEGORY_GROUP_EMPTY_SLOTS] = true,
-  [addonTable.Config.Options.ADD_TO_CATEGORY_BUTTONS] = true,
+  [addonTable.Config.Options.ADD_TO_CATEGORY_BUTTONS] = "drag",
   [addonTable.Config.Options.RECENT_TIMEOUT] = 15,
 }
 
 addonTable.Config.IsCharacterSpecific = {
   [addonTable.Config.Options.SORT_IGNORE_BAG_SLOTS_COUNT] = true,
   [addonTable.Config.Options.SORT_IGNORE_BANK_SLOTS_COUNT] = true,
+  [addonTable.Config.Options.CURRENCIES_TRACKED] = true,
+  [addonTable.Config.Options.CURRENCIES_TRACKED_IMPORTED] = true,
 }
 
 addonTable.Config.VisualsFrameOnlySettings = {
@@ -236,7 +250,7 @@ function addonTable.Config.Set(name, value)
   else
     local oldValue
     if addonTable.Config.IsCharacterSpecific[name] then
-      local characterName = addonTable.Utilities.GetCharacterFullName()
+      local characterName = Syndicator.API.GetCurrentCharacter()
       oldValue = BAGANATOR_CONFIG[name][characterName]
       BAGANATOR_CONFIG[name][characterName] = value
     else
@@ -285,12 +299,14 @@ function addonTable.Config.InitializeData()
   end
 end
 
-function addonTable.Config.Get(name)
+-- characterName is optional, only use if need a character specific setting for
+-- a character other than the current one.
+function addonTable.Config.Get(name, characterName)
   -- This is ONLY if a config is asked for before variables are loaded
   if BAGANATOR_CONFIG == nil then
     return addonTable.Config.Defaults[name]
   elseif addonTable.Config.IsCharacterSpecific[name] then
-    local value = BAGANATOR_CONFIG[name][addonTable.Utilities.GetCharacterFullName()]
+    local value = BAGANATOR_CONFIG[name][characterName or Syndicator.API.GetCurrentCharacter()]
     if value == nil then
       return addonTable.Config.Defaults[name]
     else

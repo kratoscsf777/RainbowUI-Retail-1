@@ -1,6 +1,6 @@
 # WIM
 
-## [3.12.1](https://github.com/Legacy-of-Sylvanaar/wow-instant-messenger/tree/3.12.1) (2024-07-25)
-[Full Changelog](https://github.com/Legacy-of-Sylvanaar/wow-instant-messenger/compare/3.12.0...3.12.1) [Previous Releases](https://github.com/Legacy-of-Sylvanaar/wow-instant-messenger/releases)
+## [3.12.4](https://github.com/Legacy-of-Sylvanaar/wow-instant-messenger/tree/3.12.4) (2024-10-02)
+[Full Changelog](https://github.com/Legacy-of-Sylvanaar/wow-instant-messenger/compare/3.12.3...3.12.4) [Previous Releases](https://github.com/Legacy-of-Sylvanaar/wow-instant-messenger/releases)
 
-- Update TOC for Classic  
+- Retail TOC bump  

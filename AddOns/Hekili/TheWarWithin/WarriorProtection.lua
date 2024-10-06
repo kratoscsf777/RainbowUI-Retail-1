@@ -717,6 +717,35 @@ spec:RegisterHook( "reset_precast", function ()
     end
 end )
 
+spec:RegisterStateExpr( "last_stand_damage_taken", function ()
+	return ( settings.last_stand_amount or 0 ) * health.max * 0.01
+end )
+spec:RegisterStateExpr( "last_stand_health_pct", function ()
+    return ( settings.last_stand_health or 0 )
+end )
+spec:RegisterStateExpr( "rallying_cry_damage_taken", function ()
+	return ( settings.rallying_cry_amount or 0 ) * health.max * 0.01
+end )
+spec:RegisterStateExpr( "rallying_cry_health_pct", function ()
+    return ( settings.rallying_cry_health or 0 )
+end )
+spec:RegisterStateExpr( "shield_wall_damage_taken", function ()
+	return ( settings.shield_wall_amount or 0 ) * health.max * 0.01
+end )
+spec:RegisterStateExpr( "shield_wall_health_pct", function ()
+    return ( settings.shield_wall_health or 0 )
+end )
+spec:RegisterStateExpr( "spell_block_damage_taken", function ()
+	return ( settings.spell_block_amount or 0 ) * health.max * 0.01
+end )
+spec:RegisterStateExpr( "spell_block_health_pct", function ()
+    return ( settings.spell_block_health or 0 )
+end )
+spec:RegisterStateExpr( "victory_rush_health_pct", function ()
+	return ( settings.victory_rush_health or 0 )
+end )
+
+
 -- Abilities
 spec:RegisterAbilities( {
     avatar = {
@@ -1264,26 +1293,10 @@ spec:RegisterAbilities( {
         texture = 135871,
 
         toggle = function()
-            return settings.last_stand_offensively and "cooldowns" or "defensives"
-        end,
-
-        usable = function()
-            if settings.last_stand_offensively and ( talent.unnerving_focus.enabled or conduit.unnerving_focus.enabled or set_bonus.tier30_2pc > 0 ) then return true end
-
-            local dmg_required = ( ( settings.last_stand_amount or 10 ) * 0.01 ) * health.max * ( solo and 0.5 or 1 )
-            local hp_required = ( ( settings.last_stand_health or 10 ) * 0.01 )
-            local hp = health.percent or 10
-
-            if settings.last_stand_condition then
-                if incoming_damage_5s < dmg_required then return false, format( "incoming_damage_5s[%.2f] < dmg_required[%.2f] setting", incoming_damage_5s, dmg_required ) end
-                if health.percent > hp_required then return false, format( "health.percent[%.2f] > hp_required[%.2f] setting", health.percent, hp_required ) end
-                return true
+            if settings.last_stand_offensively and ( talent.unnerving_focus.enabled or conduit.unnerving_focus.enabled or set_bonus.tier30_2pc > 0 ) then
+                return "cooldowns"
             end
-
-            if incoming_damage_5s >= dmg_required or hp <= hp_required then return true end
-            if incoming_damage_5s < dmg_required then return false, format( "incoming_damage_5s[%.2f] < dmg_required[%.2f] setting", incoming_damage_5s, dmg_required ) end
-            if hp > hp_required then return false, format( "health.percent[%.2f] > hp_required[%.2f] setting", hp, hp_required ) end
-            return false
+            return "defensives"
         end,
 
         handler = function ()
@@ -1370,22 +1383,6 @@ spec:RegisterAbilities( {
         texture = 132351,
 
         toggle = "defensives",
-
-        usable = function()
-            local dmg_required = ( settings.rallying_cry_amount * 0.01 ) * health.max * ( solo and 0.5 or 1 )
-            local hp_required = ( settings.rallying_cry_health * 0.01 )
-
-            if settings.rallying_cry_condition then
-                if incoming_damage_5s < dmg_required then return false, format( "incoming_damage_5s[%.2f] < dmg_required[%.2f] setting", incoming_damage_5s, dmg_required ) end
-                if health.percent > hp_required then return false, format( "health.percent[%.2f] > hp_required[%.2f] setting", health.percent, hp_required ) end
-                return true
-            end
-
-            if incoming_damage_5s >= dmg_required or ( health.percent or 50 ) <= hp_required then return true end
-            if incoming_damage_5s < dmg_required then return false, format( "incoming_damage_5s[%.2f] < dmg_required[%.2f] setting", incoming_damage_5s, dmg_required ) end
-            if health.percent > hp_required then return false, format( "health.percent[%.2f] > hp_required[%.2f] setting", health.percent, hp_required ) end
-            return false
-        end,
 
         handler = function ()
             applyBuff( "rallying_cry" )
@@ -1635,22 +1632,6 @@ spec:RegisterAbilities( {
 
         toggle = "defensives",
 
-        usable = function()
-            local dmg_required = ( ( settings.shield_wall_amount or 10 ) * 0.01 ) * health.max * ( solo and 0.5 or 1 )
-            local hp_required = ( ( settings.shield_wall_health or 10 ) * 0.01 )
-
-            if settings.shield_wall_condition then
-                if incoming_damage_5s < dmg_required then return false, format( "incoming_damage_5s[%.2f] < dmg_required[%.2f] setting", incoming_damage_5s, dmg_required ) end
-                if health.percent > hp_required then return false, format( "health.percent[%.2f] > hp_required[%.2f] setting", health.percent, hp_required ) end
-                return true
-            end
-
-            if incoming_damage_5s >= dmg_required or ( health.percent or 50 ) <= hp_required then return true end
-            if incoming_damage_5s < dmg_required then return false, format( "incoming_damage_5s[%.2f] < dmg_required[%.2f] setting", incoming_damage_5s, dmg_required ) end
-            if health.percent > hp_required then return false, format( "health.percent[%.2f] > hp_required[%.2f] setting", health.percent, hp_required ) end
-            return false
-        end,
-
         handler = function ()
             applyBuff( "shield_wall" )
             if talent.immovable_object.enabled then applyBuff( "avatar", 4 ) end
@@ -1729,6 +1710,17 @@ spec:RegisterAbilities( {
 
         toggle = "defensives",
         debuff = "casting",
+
+        usable = function()
+            if not settings.spell_reflection_filter then return true end
+
+            local filters = class.reflectableFilters
+            local npcid = target.npcid
+            local t = debuff.casting
+
+            -- Only use on a reflectable spell targeted at the player.
+            return not not ( t.up and npcid and filters and filters[ npcid ] and filters[ npcid ][ t.v1 ] and UnitIsUnit( "player", t.caster .. "target" ) )
+        end,
 
         handler = function()
             applyBuff( "spell_reflection" )
@@ -1911,6 +1903,15 @@ spec:RegisterAbilities( {
     },
 } )
 
+local NewFeature = "|TInterface\\OptionsFrame\\UI-OptionsFrame-NewFeatureIcon:0|t"
+
+spec:RegisterSetting( "spell_reflection_filter", true, {
+    name = format( "%s Filter M+ |T132361:0|t Spell Reflection (TWW Season 1)", NewFeature ),
+    desc = "If checked, then the addon will only suggest |T132361:0|t Spell Reflection on reflectable spells that target the player.",
+    type = "toggle",
+    width = "full",
+} )
+
 spec:RegisterSetting( "shockwave_interrupt", true, {
     name = "Only |T236312:0|t Shockwave as Interrupt",
     desc = "If checked, |T236312:0|t Shockwave will only be recommended when your target is casting (and talented).",
@@ -1949,7 +1950,7 @@ spec:RegisterSetting( "stance_weaving", false, {
 
 spec:RegisterSetting( "reserve_rage", 35, { -- Ignore Pain cost is 35, Shield Block is 30.
     name = "|T135726:0|t Reserve Rage for Mitigation",
-    desc = "If set above 0, the addon will not recommend |T132353:0|t Revenge or |T135358:0|t Execute unless you'll be still have this much Rage afterward.\n\n"
+    desc = "When set above zero, the addon will not recommend |T132353:0|t Revenge or |T135358:0|t Execute unless you'll be still have this much Rage afterward.\n\n"
         .. "When set to |cFFFFD10035|r or higher, this feature ensures that you can always use |T1377132:0|t Ignore Pain and |T132110:0|t Shield Block when following recommendations for damage and threat.",
     type = "range",
     min = 0,
@@ -1958,11 +1959,11 @@ spec:RegisterSetting( "reserve_rage", 35, { -- Ignore Pain cost is 35, Shield Bl
     width = "full",
 } )
 
-spec:RegisterSetting( "shield_wall_amount", 50, {
+spec:RegisterSetting( "shield_wall_amount", 20, {
     name = "|T132362:0|t Shield Wall Damage Required",
-    desc = "If set above 0, the addon will not recommend |T132362:0|t Shield Wall unless you have taken this much damage in the past 5 seconds, as a percentage of your maximum health.\n\n"
-        .. "If set to |cFFFFD10050%|r and your maximum health is 50,000, then the addon will only recommend Shield Wall when you've taken 25,000 damage in the past 5 seconds.\n\n"
-        .. "This value is reduced by 50% when playing solo.",
+    desc = "When set above zero, the priority can recommend |T132362:0|t Shield Wall if you have taken this much damage in the past 5 seconds, as a percentage of your maximum health.\n\n"
+        .. "If set to |cFFFFD10050%|r and your maximum health is 50,000, then Shield Wall can be recommended when you've taken 25,000 damage in the past 5 seconds.\n\n"
+        .. "By default, your Defensives toggle must also be enabled.",
     type = "range",
     min = 0,
     max = 200,
@@ -1970,9 +1971,9 @@ spec:RegisterSetting( "shield_wall_amount", 50, {
     width = "full",
 } )
 
-spec:RegisterSetting( "shield_wall_health", 50, {
+spec:RegisterSetting( "shield_wall_health", 75, {
     name = "|T132362:0|t Shield Wall Health Percentage",
-    desc = "If set below 100, the addon will not recommend |T132362:0|t Shield Wall unless your current health has fallen below this percentage.",
+    desc = "When set above zero, the priority can recommend |T132362:0|t Shield Wall if your current health has fallen below this percentage.",
     type = "range",
     min = 0,
     max = 100,
@@ -1980,19 +1981,11 @@ spec:RegisterSetting( "shield_wall_health", 50, {
     width = "full",
 } )
 
-spec:RegisterSetting( "shield_wall_condition", false, {
-    name = "Require |T132362:0|t Shield Wall Damage and Health",
-    desc = "If checked, |T132362:0|t Shield Wall will not be recommended unless both the Damage Required |cFFFFD100and|r Health Percentage requirements are met.\n\n"
-        .. "Otherwise, Shield Wall can be recommended when |cFFFFD100either|r requirement is met.",
-    type = "toggle",
-    width = "full"
-} )
-
-spec:RegisterSetting( "rallying_cry_amount", 50, {
+spec:RegisterSetting( "rallying_cry_amount", 25, {
     name = "|T132351:0|t Rallying Cry Damage Required",
-    desc = "If set above 0, the addon will not recommend |T132351:0|t Rallying Cry unless you have taken this much damage in the past 5 seconds, as a percentage of your maximum health.\n\n"
-        .. "If set to |cFFFFD10050%|r and your maximum health is 50,000, then the addon will only recommend Rallying Cry when you've taken 25,000 damage in the past 5 seconds.\n\n"
-        .. "This value is reduced by 50% when playing solo.",
+    desc = "When set above zero, the priority can recommend |T132351:0|t Rallying Cry if you have taken this much damage in the past 5 seconds, as a percentage of your maximum health.\n\n"
+        .. "If set to |cFFFFD10050%|r and your maximum health is 50,000, then Rallying Cry can be recommended when you've taken 25,000 damage in the past 5 seconds.\n\n"
+        .. "By default, your Defensives toggle must also be enabled.",
     type = "range",
     min = 0,
     max = 200,
@@ -2000,9 +1993,9 @@ spec:RegisterSetting( "rallying_cry_amount", 50, {
     width = "full",
 } )
 
-spec:RegisterSetting( "rallying_cry_health", 50, {
+spec:RegisterSetting( "rallying_cry_health", 80, {
     name = "|T132351:0|t Rallying Cry Health Percentage",
-    desc = "If set below 100, the addon will not recommend |T132351:0|t Rallying Cry unless your current health has fallen below this percentage.",
+    desc = "When set above zero, the priority can recommend |T132351:0|t Rallying Cry if your current health has fallen below this percentage.",
     type = "range",
     min = 0,
     max = 100,
@@ -2010,31 +2003,23 @@ spec:RegisterSetting( "rallying_cry_health", 50, {
     width = "full",
 } )
 
-spec:RegisterSetting( "rallying_cry_condition", false, {
-    name = "Require |T132351:0|t Rallying Cry Damage and Health",
-    desc = "If checked, |T132351:0|t Rallying Cry will not be recommended unless both the Damage Required |cFFFFD100and|r Health Percentage requirements are met.\n\n"
-        .. "Otherwise, Rallying Cry can be recommended when |cFFFFD100either|r requirement is met.",
-    type = "toggle",
-    width = "full"
-} )
-
-spec:RegisterSetting( "last_stand_offensively", false, {
+-- Not used in TWW onwards
+--[[spec:RegisterSetting( "last_stand_offensively", false, {
     name = "Use |T135871:0|t Last Stand Offensively",
     desc = function()
-        return "If checked, the addon will recommend using |T135871:0|t Last Stand to generate rage.\n\n"
-            .. "If unchecked, the addon will only recommend |T135871:0|t Last Stand defensively after taking significant damage.\n\n"
+        return "If checked, the addon will recommend |T135871:0|t Last Stand as an offensive cooldown instead of a defensive cooldown.\n\n"
             .. "Requires " .. ( state.set_bonus.tier30_2pc > 0 and "|cFF00FF00" or "|cFFFF0000" ) .. "2-piece Tier 30|r or "
             .. "|W|T571316:0|t " .. ( ( state.talent.unnerving_focus.enabled or state.conduit.unnerving_focus.enabled ) and "|cFF00FF00" or "|cFFFF0000" ) .. " Unnerving Focus|r|w"
     end,
     type = "toggle",
     width = "full"
-} )
+} ) ]]--
 
-spec:RegisterSetting( "last_stand_amount", 50, {
+spec:RegisterSetting( "last_stand_amount", 25, {
     name = "|T135871:0|t Last Stand Damage Required",
-    desc = "If set above 0, the addon will not recommend |T135871:0|t Last Stand unless you have taken this much damage in the past 5 seconds, as a percentage of your maximum health.\n\n"
-        .. "If set to |cFFFFD10050%|r and your maximum health is 50,000, then the addon will only recommend Last Stand when you've taken 25,000 damage in the past 5 seconds.\n\n"
-        .. "This value is reduced by 50% when playing solo.",
+    desc = "When set above zero, the priority can recommend |T135871:0|t Last Stand if you have taken this much damage in the past 5 seconds, as a percentage of your maximum health.\n\n"
+        .. "If set to |cFFFFD10050%|r and your maximum health is 50,000, then Last Stand can be recommended when you've taken 25,000 damage in the past 5 seconds.\n\n"
+        .. "By default, your Defensives toggle must also be enabled.",
     type = "range",
     min = 0,
     max = 200,
@@ -2043,9 +2028,9 @@ spec:RegisterSetting( "last_stand_amount", 50, {
     disabled = function() return state.settings.last_stand_offensively end,
 } )
 
-spec:RegisterSetting( "last_stand_health", 50, {
+spec:RegisterSetting( "last_stand_health", 70, {
     name = "|T135871:0|t Last Stand Health Percentage",
-    desc = "If set below 100, the addon will not recommend |T135871:0|t Last Stand unless your current health has fallen below this percentage.",
+    desc = "When set above zero, the priority can recommend |T135871:0|t Last Stand if your current health has fallen below this percentage.",
     type = "range",
     min = 0,
     max = 100,
@@ -2054,15 +2039,37 @@ spec:RegisterSetting( "last_stand_health", 50, {
     disabled = function() return state.settings.last_stand_offensively end,
 } )
 
-spec:RegisterSetting( "last_stand_condition", false, {
-    name = "Require |T135871:0|t Last Stand Damage and Health",
-    desc = "If checked, |T135871:0|t Last Stand will not be recommended unless both the Damage Required |cFFFFD100and|r Health Percentage requirements are met.\n\n"
-        .. "Otherwise, Last Stand can be recommended when |cFFFFD100either|r requirement is met.",
-    type = "toggle",
+spec:RegisterSetting( "spell_block_amount", 25, {
+    name = "|T132358:0|t Spell Block Damage Required",
+    desc = "When set above zero, the priority can recommend |T132358:0|t Spell Block if you have taken this much damage in the past 5 seconds, as a percentage of your maximum health.\n\n"
+        .. "If set to |cFFFFD10050%|r and your maximum health is 50,000, then Spell Block can be recommended when you've taken 25,000 damage in the past 5 seconds.\n\n"
+        .. "By default, your Defensives toggle must also be enabled.",
+    type = "range",
+    min = 0,
+    max = 200,
+    step = 1,
     width = "full",
-    disabled = function() return state.settings.last_stand_offensively end,
 } )
 
+spec:RegisterSetting( "spell_block_health", 75, {
+    name = "|T132358:0|t Spell Block Health Percentage",
+    desc = "When set above zero, the priority can recommend |T132358:0|t Spell Block if your current health has fallen below this percentage.",
+    type = "range",
+    min = 0,
+    max = 100,
+    step = 1,
+    width = "full",
+} )
+
+spec:RegisterSetting( "victory_rush_health", 75, {
+	name = "|T589768:0|t Victory Rush Health Threshold",
+	desc = "When set above zero, the addon may recommend |T589768:0|t Victory Rush when your health falls below this percentage.",
+	type = "range",
+	min = 0,
+	max = 100,
+	step = 1,
+	width = "full",
+} )
 
 local LSR = LibStub( "SpellRange-1.0" )
 
@@ -2091,4 +2098,4 @@ spec:RegisterOptions( {
 } )
 
 
-spec:RegisterPack( "Protection Warrior", 20240815, [[Hekili:nRv3UTTos4NLZngXytDK)l29G4CXEU60lkwaxG9ojtlrBRtKefOOC2SWWp77qkkjsAszz30Dx0I0gPHZ8ndN)i14p2)h(RJqmS)3N4nzM3YXZh5nF2Yjt9xZ(ih7Vohf(gAp8FYqPWp)hucdhYIjzN38pruAmHYP5JeckIZRcsjneO7aJLx87p90(y2HYTJcjPpveNwMG4lnKI2X4)E4t(R3wgNW(Zm)T2aYZZNa8mhh6)9faKoehfHRifxe6VMt6x8w(LXZ)9ZBwhN(hN3KZHum7JZBkZ58R483o)Tk6w8LjZa6(XbSa7WpaWfNb4Ns2fNaOgj0SIr5umG4Ti2FB1tWpzj4Gcgkle)iJSFFcEfO(FRlIpqkzCblPbEtEzAkor9jHhq094hJ3TIfNIx5D6uk5iofNXgffxjUxxQUGYcCqmdNwO(q0red0fLNuCigNef8okjrWCucNLXPa3rBbWr2(xWo4iCg)3IgSTC3UrvCzue59mvwTnHqIc2vs)q7PyAbM(wC2EnGqdrz4agHsb5P(MK49hyfb)vz0(uJxTlMIfcrJtGMxWOOKGqqh0KmAFazxaJgh(MMviNW)FC1vvDkZpDs)3hW42C2Odyuc7WO8q2lRM4PYP49zekoihfNvz9mO)vG(bpqHqIrr4DXHXahgpFqiHKWTEJKw)Ieu6ikgf9XPt6epZ7cIR8eQiFGC)cEwAohtbBltEhrFREdZKFt6MFMKpvH8iCkbmZX)ByRSYNvhdBjKu(RosIdX9r(s7SD9E(pPGR8utqfmrWyu12PG(YSmm9iFf7iHLfUG6uhq9NNZt86X2CRprLapgt4Yiau)TL0cMIyb)TJFeqX5yki1crEMAZqtaDooddHj8yAEWUlSnVlVt3i5MTj)kW(4fDH9RlWl43YEWpNOB4PtIi)xxTWtMzPaJ5gckoAeyMcFB1IbvumD(qxIkfYTuayPYelFhKfm8T6x(6QzdkWSGTKmW(YIX0PJdMKh(iVeaz3UG9HrRgRLJTzJIN16blPT(Q3v9PTMC8kRAiFzYG2KcgM2YodnWJRbwE6S8qvnHcrM7XAv0UmDHsHnR5kmQZkZKcnsGUGXjXfhAkCessiffqLNuEnRQTuyVuDnq)mzrykPSiGsmR8c7HVJoIvGhTmDBchFGObJADGaaLKKGkdEXOMfAilT85wEHWPPb8AEsrLurVwGFMw9nAzwq1VfaAo7rEBDRqe8Jf8QQSvJ5SthDsnoimbLBaqEb6lz3Ei8byMsdqJaj0A7aicURCbfr4z(HSlTrfUwdx634sAeJZKCwv0k9CYGlADqghuWi55IKd7iul(Coa(9aIz3kiAAFGIa3bWTtYU2OY7agpFROW0uqXhXzv96wN)SMhf44I04WaojuOZsHtRJWejBu9bLcqjbBTqEz1ZE3J2cLUVMrSt)TUCdUQDzQSpIx59puNGdrH)cMiOIuCgaNwy0YpziNnN)he2aThlRvjDXf2eEF15K3bLu8UMYt9FtFyf0FrzZTo)6LgUw8AS19GtivdxlAcGw3B13jUW)lCyjtZNTP8V7M7ePKCjM6925DV8H19wuYpTBqegbfoA3a0EC)mS9Yp5YeRtC0DO2XeTWs3PQVxo26m3rPjWhOZDLFZPhsFuM)7jzLScs)TLExEW1xNuNEtsVZJ3oOY93DVVcq2dMbISTfyRyA68EWg4GyZ)8WeVrBzKrkc6DlKAPm0fH1xXURjMxvUHG713C11CrUjpKBX38ZvYr4JG2YVNU1q9A(zTQVWoV5(RFhr5fOk8x)NP5ekd2c2m78Mk2CEdVdXIrN)M)Auj7a)Mdx3CNG)b)ob9xliHFrIqbs4F(U4ckLBN()D)1H0y4mgXi)1MjxoV5LvN3mU(s88xRT)4ZaC(ZZlUfLZQPozLlR55ndoVXzthN38kiWjcI0l7kE01k92Hsp7xcsNDVivLiNTxT50jjZVh4DEZZ3l6CVHp3PzKNiRYOSWtviD2yRfLqM9PIvtBrI85Cq88vab3P9zVFoZ3ln7UxzxQfHkjv4OCHi81Q)Oc4bcxAJqHbxNUV2dB)uPA3(KzA7goBI2MHgaQmJx3PGEqAMT0r65n6XZ2AOvML5EDwpVzOQo)YfEGMTFExPgFOtfqxjTAhK6y3(K3TMy475oVSEykxypyXBPRcLDbitNV59HDdvSkg96RLiXs)(Tgaz)mnP6Tzy0dNCNkZEzqLnyR9T3HBL7ewFwIQo)8IUCGD3DKOCH078Q79)wNEWDygw()HGR2W5o5Qw8XY64rJ2VfyCIAnN2M1DTcXoDf)Ad4hVShrm3GqKWAOLy9o1LPZVjXWHoFj)Q1fUmgQMvW8SowByySNAkH6uf6Pdg7U(MguKMu7YPZ6hD6HVQ)U43K)DtW3y31e(Ff2QJ9gRLXw5OvQBqm(B2HktynnJuVIQzkWy)09wbFmdeLSLHRxmUbIT4LT8V67o0uxT(XnZHGHK10MQEz6DPNMp9M9Pu4IEK0Rgi3v4FRUMYo1VRDggmaJwFQTZ0qxnPQpJd2AtTMsJzEWmMtlUSziiSgz2iBTPIWK0jAkJ6ysys5vo6QspOnzOm7l1rgDfhtX4y06IRiUAsuMZcNPCKz)AlxitJx)9CLzBN3v2wu0hTnNPVqh98Po9eQzCDorgU4)K(WF7lDQXsDnWeQ4Z(hcTNytDCiCAVM)PbQ6OzT5lqDDo(AZ91EPRoF2sBI3n6sP6l2zXIwi1XqnOsMZzvWfcNF9OLRHW70w(Rx3gVOp6wFaHd(3zFDg8Vd0BRP0fQ9qBovjIQ2vkNYvE00sy3DNyCjdfQtjqdrTxQNT5oPQMVCWt4nHWZS7Uy(d27IfeXx96LRc3q09bhUghgwZezwiTrtP6D2gpfhVzg3e0uAVXZxyg0A2qo8kM1CDF60UstQ2AOzMwbB16nXymxmHG7Z5j8kSn4lxCvK136HOntTwyKD2wpumMTK21rme6V9PKPYF0(KYCb4AEJqIA9dPv41eBxPFiTWL6HQrgu5DHieKjyR77D)Ah5a0PQzXHhO16zPp3ovFPKGQHYM)Ts4Y0mISX1WykD0wC9nDkoPrZSm3CwJQbE2FnjtT)sLrI22Xpmju4XACQMQ)4)F(d]] )
+spec:RegisterPack( "Protection Warrior", 20240926, [[Hekili:nV1wVnUUr4FlNxmIrZ64RXzpiopCoafyxGUTa(G23KeTeTTA0nqr5CsrG(T3HK6cjnj9LKnTal2KinCMV5cNzi9yVjE)H36ief79JPJNoF8xNE)Oj3pDXCV10xlWERlqHpJ2b)sgkf())bjNIdPX5z1b)leHeNty08AsokIXQY8ksiq3EkTO8xV7UDX09vBgfMNExzCAvcIT0qcAlL93H35TEtvCc9BzEBmIJjlaEwGd9(XYzaxJJIWcsXLHERzK(LXF9ltV)xRdwxGtsQd(TK8WNRdqaLr1FV(7D0mhO5VftJ3XXqjqswuDW3slWrXz7Qd(NXH0CYR1b)14)uEPp8LjlUToayX4VYetC6VxhuW08ykqDvbd2L90VuiQ)ypMBIG)dSbXzGzIKVnobmoiUbSCubbdgMni6Fz1DW)ttW(Luuwi(wA(UDj4vGv(7UiEFEfLj4gAG3uuLMItKFs4Eezh(24TROXP4vJF7T08d4uCgDuuSqCp9G8cQkX(XuCAP8drhqueHXLnvB3ocCQzryI)MeujWN8xYE7ndVayF4ZpUAQmNkzUj49Gx6wMOY3U1Fxy0QjCiIYEgCgdIZaDf(f)u0U4q)ie8tS)IYNKwD7tPONXzd2Jrj09JkcPpUsMiXZ9HNp4xUHdrXBj4TjIaz)i8wCwjEuvXqfGUpgNe5)ckj5maQee7xNdikrKbi2)wavnMwMfLhFe1)mcqXRmXhsET)Pf5mDqxFa7rEK)2kiex(PysjMW0ff3njeLb4oNqGaf53KeVBpT0)FxfTlv7vBJjyUqu4eeFvsbC6hcyvrYODGn1NsIdFwjwta)UynrOxV2193dOSiB6iz760XYCkExwob7xGIZeonn6FcOFWneWfncccIdJbomzXGW88ewmDRFOmbLoIGrrV(2BQepF8rel2VjihqycBJg8S0cgM83uL8cI88iCgAtcosNFtDZpDYNjrEeonhmZX)hw4apZGkg2KlcupKhhIph53yNnR3lENcEWXH0T0xLLHjhyRyBEyvPnOoZcuF)CE64ZWn3htie4H4CMm8b1FtfbY91lwiE7WRqcNcmbKAjpBERzOHKyOkugg2MapuST3c2w4k60osUyBYpdSpzPlSFAbEe)E4m4Nv0n8T3478FA1YXnzwkXyMHGGJevUwTCGGIzlgAtuPqULsaldKtCZl90(YNwnFqjM6VjpdSV0ymz2e)PfHQfvuYX25OUOcp9lZEDhjA(Kk7it7juazsTRcku9jPehe9g6tQk3Zucj8i)kz4ih)fXZ)jiK11fpauPqLovVxH0eKR6ioaguI8Joo1TWdzpVTwNLnv1GwQqkmwPnqgpfnDjkaxQ2LiueEGTEhvBDKb3KyHhGVIW8K8YsO3IuwxjILa7wnGK8QsFsUkivkWA4fIEuBLLPT2W(EL(nivz(I)YhWj9w2zMwHYX3wY6YHk2bB2ueMGk0GoRHPJz3oiDgWmP2(hbsWKnpkNvjgc57rRT1WK(fUKoXyTOJrfvONnEC5w5AQgvsZlk4jR3Mtme3zb4xdiMFPGORDoccIgGTgnSRVa1vaJ7VuuOBki4d4mXj8ARN1YJsCCzkC(jgjeOtF(jF70gvm1Wg5yWgbivWRvipU6(XxJ2cTsDkJOZ4nxHbN0UmRPVUNy9Z1MKdrG)bMiOdH4mao9WONFnB5mf8FJ9mxc)k3MWoNtr(lGs2CI4jxQtFOj0O5yUXQaDKHfWIDh5qHb7rPqQ2CWh7U6Xf(pXHvuLiYUMTS3knpHJnX065w4E5dB7KRIDrrWj7rqb0EZRYJDOasC(SIcooT5ul9IZaUlwApr81YX(qvhfEGyaNELFXAeY5OmFEswApFt82dJp(AcEAABYRg6TEzcdeH)2pPbhKNbZar2FGdJyA2IZGnWXEx8XHj2XAA2zKIG(OcjgkYC02Ah293DC4QtfoCrrdxsC4hRKJWhaTLDD2RHkVStX2FV2ERFbryLAk9w)T0ICcfm3bZRdeSPoG1Rx5O6V7TM)BSRvhQOb)4h8BRVXd59BERdjXuqIiV165lQdECvDWK27A2BTIBWJcW59ZlMHJXQzwzLnJwDWG6aRDjuh8eiWPCIuRtYF0PQv6qPN)tbPZVwKktK1(HcE7TgMFnWRo4(RfD2D4lSAgz5MegLLJLfIZornOeTju4SAwpsAEode3FcqWcAVF87Z89yN39eEPEekL7GHYL8TVgJhLapq4dMiKBWvP7RNHTFwJA3)K5kEdRD9AYqdaTjXM7uq30yMn0KzDG6(zt9O2KL5AdwRdgEvj7UXjKuHTrnRb1UJYgk7pE8ODh6D7AnAYEMw1nEmHDJb)VRkCUaKE40IZHDdLSkAnKRKAWqt59gGMMo6sEBYWOUbXEYjZf2KCWgBU2ryL9uqFuIQnJ7sxbW2BRHxaOj68K((FXzeSdZWd)Fi4AnC2txQS)4H29JA9iZX4u5Qi9DuBBfCpTGF9B4N8WzSJ5cesdSgAyVUtDz2IlsmmOZwYpBDHjJHYzf0pqIXwaMmwoLqBQc10btMitt7I1OXz9bNrWRo)q4lk(TBZ1e758)Ff2A3BnrjJS0zEKnUu2B2IQsODTp0UcXWQO5lS7kyZVcVKCZ2XJMJfEK0d98xCZ(D1nBFC3aUOj5tC4a1Q)8RDPpi3ARbt7LROHMUsusF0Em7IfDw8PLX9r2gkgUABBWy4RuFhT5bKPnpBBlrogugLWcjU1vu86von1Q)tZ7muljIDOwkFaHs(qLpKq5eyQFqHsVP7dlu1E0lGJobq)q44Q9)(HYXuZ)DXtkdPJEknLuJAtTJZuKDJXJXKKDcxzUE0jvz)MYG(Ot5j20jDiGoRU(bdSuawkpd3nXf3P251UePjhsnI94Ix9v7BQc3oHcnflx4Qyjk61(ERvxOLw2LNhi5cMwNXiB8F65WFZlDM2sTncqY4Z8hN8zIn5b8XQ9AXhgOgyoJWaPJHACQzox7LQ68rlTPJVWqk5yrN9c0djhJPJmzwN(gBiCXP3TCkeEL2YF(62KLNJUDoGWc)D2wUg)DGEtNPyP8rG0NtkEtzcLt6oO66O3DZNA36tdnkJzH8TSAAsQ4z2)qB7WYOuXxIELgJJufNYpZMo65d3Ay)(codT36Cyzu)TmpwF6waz652a7xlHIkuhyz6QoA7IXX4QhaYSHda739WhbaAzCFpl6KWpoLsFGnZaM(rUSFPUUQtkF0p9sTC2Q0WO20IPdb7NY1XOJD0huK17E2XbSNEIwqnnKzh95s0EHPCgUqwVBKx7aOPR33ltRsly6uAFlTJeN8SRJpscDhwBQ9njN6QfaTxmwB8mTDryQJaN4ZW0x8LhI9PyYKP((IUqeTbEtzXTFge8BuO7ldt3Dki(gZ4TMF2KUdEi9DQX01mOtipYv72lOSxxIJ(7zw(2pHQO7z)CD33VPFN99BIVuV)l]] )

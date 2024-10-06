@@ -16,6 +16,95 @@ function DR.tooltip_OnLeave()
 	GameTooltip:Hide();
 end
 
+-- Using Blizz's globally accessible frame fade function causes taint with the map
+-- So just add their own code in locally
+
+local FrameFaderDriver;
+local fadingFrames;
+local deferredFadingFrames;
+
+local function OnUpdate(self, elapsed)
+	local isMoving = IsPlayerMoving();
+	for frame, setting in pairs(fadingFrames) do
+		local fadeOut = isMoving and (not setting.fadePredicate or setting.fadePredicate());
+		frame:SetAlpha(DeltaLerp(frame:GetAlpha(), fadeOut and setting.minAlpha or setting.maxAlpha, .1, elapsed));
+	end
+end
+
+local function MergeDeferredEvents()
+	if deferredFadingFrames then
+		for frame, setting in pairs(deferredFadingFrames) do
+			fadingFrames[frame] = setting;
+		end
+		deferredFadingFrames = nil;
+	end
+end
+
+local function OnEvent(self, event, ...)
+	if event == "PLAYER_STARTED_MOVING" 
+	or event == "PLAYER_STOPPED_MOVING" 
+	or event == "PLAYER_IS_GLIDING_CHANGED" 
+	or event == "PLAYER_IMPULSE_APPLIED" then
+		MergeDeferredEvents();
+	end
+end
+
+local function InitializeDriver()
+	if not FrameFaderDriver then
+		fadingFrames = {};
+
+		FrameFaderDriver = CreateFrame("FRAME");
+		FrameFaderDriver:SetScript("OnUpdate", OnUpdate);
+		FrameFaderDriver:SetScript("OnEvent", OnEvent);
+		FrameFaderDriver:RegisterEvent("PLAYER_STARTED_MOVING");
+		FrameFaderDriver:RegisterEvent("PLAYER_STOPPED_MOVING");
+		FrameFaderDriver:RegisterEvent("PLAYER_IS_GLIDING_CHANGED");
+		FrameFaderDriver:RegisterEvent("PLAYER_IMPULSE_APPLIED");
+	end
+end
+
+local function PackFadeData(minAlpha, maxAlpha, durationSec, fadePredicate)
+	return { minAlpha = minAlpha or .5, maxAlpha = maxAlpha or 1, durationSec = durationSec or 1, fadePredicate = fadePredicate };
+end
+
+local function RemoveFrameInternal(frame)
+	if fadingFrames then
+		fadingFrames[frame] = nil;
+	end
+	if deferredFadingFrames then
+		deferredFadingFrames[frame] = nil;
+	end
+end
+
+local PlayerMovementFrameFader = {};
+
+function PlayerMovementFrameFader.AddFrame(frame, minAlpha, maxAlpha, durationSec, fadePredicate)
+	RemoveFrameInternal(frame);
+
+	InitializeDriver();
+	fadingFrames[frame] = PackFadeData(minAlpha, maxAlpha, durationSec, fadePredicate);
+end
+
+-- The fading won't take effect until the player stops or starts moving again
+function PlayerMovementFrameFader.AddDeferredFrame(frame, minAlpha, maxAlpha, durationSec, fadePredicate)
+	InitializeDriver();
+	RemoveFrameInternal(frame);
+
+	if not deferredFadingFrames then
+		deferredFadingFrames = {};
+	end
+	deferredFadingFrames[frame] = PackFadeData(minAlpha, maxAlpha, durationSec, fadePredicate);
+end
+
+function PlayerMovementFrameFader.RemoveFrame(frame)
+	local maxAlpha = fadingFrames and fadingFrames[frame] and fadingFrames[frame].maxAlpha;
+	if maxAlpha then
+		frame:SetAlpha(maxAlpha);
+	end
+
+	RemoveFrameInternal(frame, restoreAlpha);
+end
+
 local function SetupFade(self)
 	local minAlpha = 0.5;
 	local maxAlpha = 1.0;
@@ -351,6 +440,21 @@ end
 DR.mainFrame:RegisterEvent("QUEST_REMOVED")
 DR.mainFrame:SetScript("OnEvent", DR.mainFrame.WorldQuestHandler)
 
+DR.mainFrame.OpenTalentsButton = CreateFrame("Button", nil, content1, "SharedButtonTemplate")
+DR.mainFrame.OpenTalentsButton:SetPoint("TOPRIGHT", content1, "TOPRIGHT", 130, -25);
+DR.mainFrame.OpenTalentsButton:SetSize(150, 26);
+DR.mainFrame.OpenTalentsButton:SetText(L["DragonridingTalents"]);
+DR.mainFrame.OpenTalentsButton:SetScript("OnClick", function(self)
+	DragonridingPanelSkillsButtonMixin:OnClick();
+end);
+DR.mainFrame.OpenTalentsButton:SetScript("OnEnter", function(self)
+	GameTooltip:SetOwner(self, "ANCHOR_TOP");
+	GameTooltip:AddLine(L["OpenDragonridingTalents"], 1, 1, 1);
+	GameTooltip:Show();
+end);
+DR.mainFrame.OpenTalentsButton:SetScript("OnLeave", function()
+	GameTooltip:Hide();
+end);
 
 function DR.mainFrame.PopulationData(continent)
 	local placeValueX = 1
@@ -562,14 +666,15 @@ function DR.mainFrame.PopulationData(continent)
 			if mapPOI then
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY] = CreateFrame("Button", nil, content1);
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetPoint("TOPLEFT", DR.mainFrame["backFrame"..continent], "TOPLEFT", 10, -15*placeValueY-20);
-				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetSize(DR.mainFrame["Course"..continent.."_"..placeValueY]:GetStringWidth(), 15)
+				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetSize(120, 15)
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetParent(DR.mainFrame["backFrame"..continent]);
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:EnableMouse(true)
-				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetScript("OnClick", function(self, button, down)
-					C_SuperTrack.SetSuperTrackedMapPin(0, mapPOI);
-					PlaySound(170270);
-				end);
+				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetFrameLevel(5);
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetScript("OnEnter", function(self)
+					self:SetScript("OnClick", function(self, button, down)
+						C_SuperTrack.SetSuperTrackedMapPin(0, mapPOI);
+						PlaySound(170270);
+					end);
 					DR.tooltip_OnEnter(self, trackedTooltip)
 				end);
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetScript("OnLeave", DR.tooltip_OnLeave);
@@ -588,14 +693,15 @@ function DR.mainFrame.PopulationData(continent)
 			if mapPOI then
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY] = CreateFrame("Button", nil, content1);
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetPoint("TOPLEFT", DR.mainFrame["backFrame"..continent], "TOPLEFT", 10, -15*placeValueY-20);
-				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetSize(DR.mainFrame["Course"..continent.."_"..placeValueY]:GetStringWidth(), 15)
+				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetSize(120, 15)
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetParent(DR.mainFrame["backFrame"..continent]);
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:EnableMouse(true)
-				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetScript("OnClick", function(self, button, down)
-					C_SuperTrack.SetSuperTrackedMapPin(0, mapPOI);
-					PlaySound(170270);
-				end);
+				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetFrameLevel(5);
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetScript("OnEnter", function(self)
+					self:SetScript("OnClick", function(self, button, down)
+						C_SuperTrack.SetSuperTrackedMapPin(0, mapPOI);
+						PlaySound(170270);
+					end);
 					DR.tooltip_OnEnter(self, trackedTooltip)
 				end);
 				DR.mainFrame["CourseTracker"..continent.."_"..placeValueY]:SetScript("OnLeave", DR.tooltip_OnLeave);

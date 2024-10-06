@@ -16,7 +16,6 @@ local PartyFrame = KeyMaster.PartyFrame
 
 -- Global Variables
 KM_ADDON_NAME = KeyMasterLocals.ADDONNAME
---KM_AUTOVERSION = GetAddOnMetadata("KeyMaster", "Version") GetAddOnMetadata is depreciated in "The War Within" expansion.
 KM_AUTOVERSION = C_AddOns.GetAddOnMetadata("KeyMaster", "Version")
 
 KM_VERSION_STATUS = KeyMasterLocals.BUILDRELEASE -- BUILDALPHA BUILDBETA BUILDRELEASE - for display and update notification purposes
@@ -107,27 +106,28 @@ function KeyMaster:Print(...)
 end
 
 -- This retry logic is done because the C_MythicPlus API is not always available right away and this frame depends on it.
-local function intializeUIWithRetries(retryCount)
+local function intializePlayerDataWithRetries(retryCount)
     if retryCount == nil then retryCount = 0 end
     local seasonalMaps = KeyMaster.DungeonTools:GetCurrentSeasonMaps()
     local seasonalAffixes = KeyMaster.DungeonTools:GetAffixes()
-    if KeyMaster:GetTableLength(seasonalMaps) > 0 and seasonalAffixes ~= nil then
+    -- removed and seasonalAffixes ~= nil from if check below...  because affix aren't available in on expansion launch todo: is needed in TWW S1?
+    if KeyMaster:GetTableLength(seasonalMaps) > 0 then
         -- fetch player data from bliz and save it to local memory
         -- the next two lines doesn't work if you remove it from here due to data not being available from bliz
         local playerData = CharacterInfo:GetMyCharacterInfo()
         KeyMaster.UnitData:SetUnitData(playerData)
 
-        local mainUI = _G["KeyMaster_MainFrame"] or MainInterface:Initialize()
+        --local mainUI = _G["KeyMaster_MainFrame"] or MainInterface:Initialize()
     else
         if retryCount < 5 then
-            C_Timer.After(3, function() intializeUIWithRetries(retryCount + 1) end)
+            C_Timer.After(3, function() intializePlayerDataWithRetries(retryCount + 1) end)
             if retryCount > 0 then
-                KeyMaster:_DebugMsg("intializeUIWithRetries", "KeyMaster.lua", "Retrying to create UI frames after "..tostring(retryCount).." retries.")
+                KeyMaster:_DebugMsg("intializePlayerDataWithRetries", "KeyMaster.lua", "Retrying to create UI frames after "..tostring(retryCount).." retries.")
             else
-                KeyMaster:_DebugMsg("intializeUIWithRetries", "KeyMaster.lua", "Initializing user interface.")
+                KeyMaster:_DebugMsg("intializePlayerDataWithRetries", "KeyMaster.lua", "Initializing user interface.")
             end            
         else
-            KeyMaster:_ErrorMsg("intializeUIWithRetries", "KeyMaster.lua", "Failed to create UI frames after "..tostring(retryCount).." retries.")
+            KeyMaster:_DebugMsg("intializePlayerDataWithRetries", "KeyMaster.lua", "Failed to create UI frames after "..tostring(retryCount).." retries. May also happen with no active season.")
         end
     end
 end
@@ -143,7 +143,7 @@ local function OnEvent_AddonLoaded(self, event, name, ...)
 
     SLASH_FRAMESTK1 = "/fs"
 	SlashCmdList.FRAMESTK = function()
-		LoadAddOn("Blizzard_DebugTools")
+		C_AddOns.LoadAddOn("Blizzard_DebugTools")
 		FrameStackTooltip_Toggle()
 	end
 
@@ -227,8 +227,9 @@ local function onEvent_PlayerEnterWorld(self, event, isLogin, isReload)
             KeyMaster:_DebugMsg("onEvent_PlayerEnterWorld", "KeyMaster", "Reloaded UI...")
         end        
 
-        -- creates the UI but only when bliz data is avaiable from C_MythicPlus
-        intializeUIWithRetries()
+        KeyMaster.MainInterface:CreateMiniMapIcon()
+        -- loads player data but only when bliz data is avaiable from C_MythicPlus
+        intializePlayerDataWithRetries()
         KeyMaster.EventHooks:NotifyEvent("VAULT_UPDATE")
        --[[  C_Timer.After(5, 
             function() 

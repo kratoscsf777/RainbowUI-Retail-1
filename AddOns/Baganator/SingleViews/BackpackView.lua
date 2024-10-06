@@ -5,13 +5,13 @@ BaganatorSingleViewBackpackViewMixin = CreateFromMixins(BaganatorItemViewCommonB
 function BaganatorSingleViewBackpackViewMixin:OnLoad()
   BaganatorItemViewCommonBackpackViewMixin.OnLoad(self)
 
-  self.BagLive:SetPool(self.liveItemButtonPool)
-  self.CollapsingBagSectionsPool = addonTable.SingleViews.GetCollapsingBagSectionsPool(self)
+  self.Container.BagLive:SetPool(self.liveItemButtonPool)
+  self.CollapsingBagSectionsPool = addonTable.SingleViews.GetCollapsingBagSectionsPool(self.Container)
   self.CollapsingBags = {}
   self.bagDetailsForComparison = {}
 
   addonTable.CallbackRegistry:RegisterCallback("ContentRefreshRequired",  function()
-    for _, layout in ipairs(self.Layouts) do
+    for _, layout in ipairs(self.Container.Layouts) do
       layout:RequestContentRefresh()
     end
     if self:IsVisible() and self.lastCharacter ~= nil then
@@ -49,12 +49,12 @@ function BaganatorSingleViewBackpackViewMixin:ApplySearch(text)
   self.searchToApply = false
 
   if self.isLive then
-    self.BagLive:ApplySearch(text)
+    self.Container.BagLive:ApplySearch(text)
     for _, bagGroup in ipairs(self.CollapsingBags) do
       bagGroup.live:ApplySearch(text)
     end
   else
-    self.BagCached:ApplySearch(text)
+    self.Container.BagCached:ApplySearch(text)
     for _, bagGroup in ipairs(self.CollapsingBags) do
       bagGroup.cached:ApplySearch(text)
     end
@@ -62,14 +62,14 @@ function BaganatorSingleViewBackpackViewMixin:ApplySearch(text)
 end
 
 function BaganatorSingleViewBackpackViewMixin:NotifyBagUpdate(updatedBags)
-  self.BagLive:MarkBagsPending("bags", updatedBags)
+  self.Container.BagLive:MarkBagsPending("bags", updatedBags)
   for _, bagGroup in ipairs(self.CollapsingBags) do
     bagGroup.live:MarkBagsPending("bags", updatedBags)
   end
 
   -- Update cached views with current items when live or on login
   if self.isLive == nil or self.isLive == true then
-    self.BagCached:MarkBagsPending("bags", updatedBags)
+    self.Container.BagCached:MarkBagsPending("bags", updatedBags)
     for _, bagGroup in ipairs(self.CollapsingBags) do
       bagGroup.cached:MarkBagsPending("bags", updatedBags)
     end
@@ -86,20 +86,20 @@ function BaganatorSingleViewBackpackViewMixin:UpdateForCharacter(character, isLi
 
   self:AllocateBags(character)
 
-  self.BagLive:SetShown(isLive)
-  self.BagCached:SetShown(not isLive)
+  self.Container.BagLive:SetShown(isLive)
+  self.Container.BagCached:SetShown(not isLive)
 
   local searchText = self.SearchWidget.SearchBox:GetText()
 
   local activeBag, activeBagCollapsibles = nil, {}
 
-  if self.BagLive:IsShown() then
-    activeBag = self.BagLive
+  if self.Container.BagLive:IsShown() then
+    activeBag = self.Container.BagLive
     for _, layouts in ipairs(self.CollapsingBags) do
       table.insert(activeBagCollapsibles, layouts.live)
     end
   else
-    activeBag = self.BagCached
+    activeBag = self.Container.BagCached
     for _, layouts in ipairs(self.CollapsingBags) do
       table.insert(activeBagCollapsibles, layouts.cached)
     end
@@ -120,13 +120,9 @@ function BaganatorSingleViewBackpackViewMixin:UpdateForCharacter(character, isLi
     self:ApplySearch(searchText)
   end
 
-  local sideSpacing, topSpacing = 13, 14
-  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
-    sideSpacing = 8
-    topSpacing = 7
-  end
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
-  local bagHeight = activeBag:GetHeight() + topSpacing / 2
+  local bagHeight = activeBag:GetHeight()
 
   bagHeight = bagHeight + addonTable.SingleViews.ArrangeCollapsibles(activeBagCollapsibles, activeBag, self.CollapsingBags)
 
@@ -135,39 +131,44 @@ function BaganatorSingleViewBackpackViewMixin:UpdateForCharacter(character, isLi
     layouts.cached:SetShown(not isLive and layouts.cached:IsShown())
   end
 
-  activeBag:SetPoint("TOPRIGHT", -sideSpacing, -50 - topSpacing / 4)
+  activeBag:SetPoint("TOPRIGHT")
 
-  self:SetSize(
-    activeBag:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
-    bagHeight + 75
+  self.Container:SetSize(
+    activeBag:GetWidth(),
+    bagHeight
   )
+
+  self:OnFinished()
 
   self.AllButtons = {}
   tAppendAll(self.AllButtons, self.AllFixedButtons)
   tAppendAll(self.AllButtons, self.TopButtons)
 
-  self:HideExtraTabs()
+  local lastButton = self.CurrencyButton
+  lastButton:SetPoint("BOTTOM", self, "BOTTOM", 0, 6)
+  lastButton:SetPoint("LEFT", self.Container, -2, 0)
+  table.insert(self.AllButtons, lastButton)
 
-  local lastButton = nil
+  local buttonsWidth = lastButton:GetWidth()
+
   for index, layout in ipairs(activeBagCollapsibles) do
     local button = self.CollapsingBags[index].button
+    button:SetParent(self)
     button:SetShown(layout:GetHeight() > 0)
     button:ClearAllPoints()
     if button:IsShown() then
-      if lastButton then
-        button:SetPoint("LEFT", lastButton, "RIGHT", 5, 0)
-      else
-        button:SetPoint("BOTTOM", self, "BOTTOM", 0, 6)
-        button:SetPoint("LEFT", activeBag, -2, 0)
-      end
+      buttonsWidth = buttonsWidth + 5 + button:GetWidth()
+      button:SetPoint("LEFT", lastButton, "RIGHT", 5, 0)
       lastButton = button
       table.insert(self.AllButtons, button)
     end
   end
 
-  self:UpdateAllButtons()
+  -- Necessary extra call as collapsing bag region buttons get updated
+  -- out-of-sync with everything else
+  self.ButtonVisibility:Update()
 
-  self.CurrencyWidget:UpdateCurrencyTextVisibility(lastButton and lastButton:GetRight() - self:GetLeft() + 10 or sideSpacing + addonTable.Constants.ButtonFrameOffset)
+  self.CurrencyWidget:UpdateCurrencyTextPositions(self.Container:GetWidth() - buttonsWidth - 10)
 
   addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
 
@@ -178,7 +179,7 @@ end
 
 function BaganatorSingleViewBackpackViewMixin:GetSearchMatches()
   local matches = {}
-  tAppendAll(matches, self.BagLive.SearchMonitor:GetMatches())
+  tAppendAll(matches, self.Container.BagLive.SearchMonitor:GetMatches())
   for _, layouts in ipairs(self.CollapsingBags) do
     tAppendAll(matches, layouts.live.SearchMonitor:GetMatches())
   end

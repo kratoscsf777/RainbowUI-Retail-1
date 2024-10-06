@@ -7,6 +7,131 @@ setfenv(1, _G.CursorTrail)  -- Everything after this uses our namespace rather t
 kChangelogText =
 [[
 =======================================
+RELEASE 11.0.2.6
+Released 2024-09-27
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 11.0.2.6 for Retail WoW
+Version 4.4.0.14 for Classic Cataclysm
+Version 1.15.4.1 for Classic WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+NEW FEATURES:
+- Added a new profile option: "Use same profile for all characters".  When on, a small icon appears near the upper-left corner of the profile name, and that profile will be used for all characters rather than have different profiles for each character.
+Note: To open profile options, click "Menu" in the main window and select "Profile Options", or type "/ct pow".
+
+- Added slash command:
+        /ct pow    (Shows/Hides the profile options window.)
+
+- Added "Undo" to the Menu dropdown list.  It undoes unsaved changes to the current profile.  (Same as reloading the profile.)
+
+- Added "Reset Layer" to context menu that appears when right-clicking an empty area of the main window's background.
+
+CHANGES:
+- Added shortcut keys to Yes/No popup messages.  Pressing the Y key triggers the Yes button, and N key triggers the No button.
+
+- When loading default profiles, many of them will keep your current settings for "Show only in combat" and "Show during Mouse Look", unless those settings are an important part of the profile's design.
+
+- Updated the "Ring & Rainbow" default.  (Retail WoW only.)
+
+- The profile options window can now be moved.
+
+- Rewrote the code for displaying many of the popup messages.  (Should be no noticeable differences.)
+
+BUG FIXES:
+- Fixed bug where popup messages could be permanently covered up simply by clicking on the main UI while a message was being displayed.
+
+- Fixed tab key cycling through editboxes.  It no longer does anything on disabled layers.
+
+- Fixed minor bugs involving undoing changes to profiles after they were saved.  (BUG_20240925.1 and BUG_20240925.2)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 1.15.4.1 for Classic WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+- Updated for Classic WoW 1.15.4.
+- Fixed LUA errors caused by the removal of the OptionsButtonTemplate and OptionsBoxTemplate templates from the Classic WoW API.
+
+=======================================
+RELEASE 11.0.2.5
+Released 2024-09-18
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 11.0.2.5 for Retail WoW
+Version 4.4.0.13 for Classic Cataclysm
+Version 1.15.3.8 for Classic WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+- Fixed major lag that occurred on some computers when leaving combat.  (Removed the memory check that was added last release.)
+
+=======================================
+RELEASE 11.0.2.4
+Released 2024-09-17
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 11.0.2.4 for Retail WoW
+Version 4.4.0.12 for Classic Cataclysm
+Version 1.15.3.7 for Classic WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+NEW FEATURES:
+- Added a second layer, making it possible to have two models, two shapes, two shadows, or any combination of them.
+Note: If you have at least one saved profile, a backup named "@v11.0.2.3" is created to ensure your old profiles will not be lost during the conversion to the new layers format.  (Can be restored by clicking "Menu" and selecting "Restore..." from the dropdown list.)
+
+- Added a context menu for selecting and enabling layers.  (To open the menu, right-click an empty area of the option window's background.)
+
+- Added new defaults:
+            "(Start Here)"  ...  This is a good starting point for a new profile.
+            "Cross & Ring, Red"
+            "Electric B&W Rings"
+            "Fireball"  ...  Available in Retail WoW only.
+
+- Changelog button now flashes when there is new information that has not been seen yet.  (Flashing always stops after next reload.)
+
+- Checkboxes can be toggled on/off by clicking their text as well as their box.
+Note: Classic WoW checkboxes already work this way.
+
+CHANGES:
+- Fixed error caused when moving mouse over the game's "Shop" window while CursorTrail's UI is also open.
+
+- Adjusted model offsets for ...
+            Trail - Sparkling, Red
+
+- Renamed the default "Glowing Star, Red" to "Star Glow Red", and added a trail FX to it.
+
+- Renamed the option "Layer (Strata)" to "Layer Strata".
+
+- Removed the following slash commands:
+        /ct combat
+        /ct fade
+        /ct mouselook
+        /ct sparkle
+
+- Added a memory check when combat ends.  It prints a warning if CursorTrail's memory usage ever grows too large.
+
+- Fixed warning message about unsaved changes before loading another profile. (There was a bug in function defaultValuesAreLoaded.)
+
+- Updated diagnostic slash commands:
+        /ct memory
+        /ct screen
+        /ct config
+        /ct model
+        /ct camera
+
+- Added diagnostic command to help diagnose large frame rate drops on some computers.
+        /ct throttle 8
+
+- Added diagnostic command to help diagnose model position problems on ultrawide monitors.
+        /ct uw
+
+- Updated help.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 11.0.2.4 for Retail WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+CHANGES:
+- Adjusted model offsets for ...
+            Trail - Sparkling, Blue
+            Trail - Sparkling, Green
+            Trail - Sparkling, White
+
+=======================================
 RELEASE 11.0.2.3
 Released 2024-08-22
 
@@ -110,7 +235,7 @@ Version 4.4.0.5 for Classic Cataclysm
 Version 1.15.2.4 for Classic WoW
 - - - - - - - - - - - - - - - - - - - - - - - - - -
 NEW FEATURES:
-- Added a changelog button along the bottom of the options window.  (It appears as a round, yellow button with an "i" in it.)
+- Added a changelog button along the bottom of the main window.  (It appears as a round, yellow button with an "i" in it.)
 
 CHANGES:
 - Fixed ADDON_ACTION_BLOCKED errors by replacing the profiles dropdown menu with a custom control.  (Replaced Blizzard's UIDropDownMenu control to avoid causing taint.)
@@ -234,7 +359,7 @@ NEW FEATURES:
 - Added some new defaults (for Retail WoW only).
 
 CHANGES:
-- Cursor FX are now confined to the top side of the options window while the mouse is over that window.  (Easier to see changes you make.)
+- Cursor FX are now confined to the top side of the main window while the mouse is over that window.  (Easier to see changes you make.)
 - Updated help, and added component version numbers at the end of it.
 - Updated the UI controls library, renamed that file to "UDControls.lua" (was "Controls.lua"), and moved it to the "Lib" folder.
 - Fixed color swatch button sometimes showing wrong color after "Sparkle" checkbox was turned off.
@@ -412,7 +537,7 @@ NEW FEATURES:
 - Added "<None>" to the list of models.  This allows having a shape or black shadow without anything else.
 - Changed the "Defaults 4" button to use the new "Shape" feature.
 - Added "NEW" indicators next to new options.  The indicators go away after the next reload.  (Can be reset by typing "/ct resetnewfeatures".)
-- Added a "Help" button along the bottom of the options window.
+- Added a "Help" button along the bottom of the main window.
 
 CHANGES:
 - Changed the order of some options, grouping Shape, Model, and Shadow together at the top.
@@ -425,38 +550,7 @@ CHANGES:
 - Improved accuracy of models following mouse cursor.
 - Changed minimum scale % to 2.  (1% was causing some models to fill the screen and stop moving after clicking Okay.  Reason unknown.)
 - Slash command results are now shown in the selected chat tab.  (Previously, they only appeared in the "General" chat tab.)
-- Added divider lines to the options window to indicate which settings are changed by clicking on of the "Defaults" buttons.
-
-=======================================
-RELEASE 10.0.5.3
-Released 2023-02-07
-
-- - - - - - - - - - - - - - - - - - - - - - - - - -
-Version 10.0.5.3 for Retail WoW ...
-Version 3.4.1.2 for Classic WotLK...
-Version 1.14.3.4 for Classic WoW ...
-- - - - - - - - - - - - - - - - - - - - - - - - - -
-NEW FEATURES:
-- Added new slash commands: /ct off, and /ct on.  Useful for temporarily disabling cursor effects during graphically complex fights (for better performance).  Automatically turns back on at next reload, or when the options window is opened.
-
-CHANGES:
-- Improved the help text shown by /ct help.  The text can now be scrolled one line at a time in the chat window.
-
-=======================================
-RELEASE 10.0.0.1
-Released 2022-10-28
-
-- - - - - - - - - - - - - - - - - - - - - - - - - -
-Version 10.0.0.1 for Retail WoW ...
-- - - - - - - - - - - - - - - - - - - - - - - - - -
-- Fixed bugs caused by DragonFlight release.
-- Removed the config panel from the standard addons UI.  Options can now only be accessed by using a slash command.  (/ct, or /CursorTrail)
-
-- - - - - - - - - - - - - - - - - - - - - - - - - -
-Version 1.14.3.1 for Classic WoW, and
-Version 3.4.0.1 Classic WotLK ...
-- - - - - - - - - - - - - - - - - - - - - - - - - -
-- Added support for Classic World of Warcraft and Classic Wrath of Lich King.  However, there will not be as many animation model choices in the list as there are for Retail WoW.
+- Added divider lines to the main window to indicate which settings are changed by clicking on of the "Defaults" buttons.
 
 ]]
 

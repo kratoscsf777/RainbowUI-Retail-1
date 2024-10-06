@@ -6,6 +6,9 @@ local _, KeyMaster = ...
 local DungeonTools = KeyMaster.DungeonTools
 local Theme = KeyMaster.Theme
 
+--[[ local LibSerialize = LibStub("LibSerialize")
+local LibDeflate = LibStub("LibDeflate") ]]
+
 -- sort arrays by order (order optional)
 function KeyMaster:spairs(t, order)
     -- collect the keys
@@ -139,90 +142,79 @@ end
 
 function KeyMaster:CreateDefaultCharacterData()
     local charDefaults = {}
-    -- below line should be changed AFTER expansion release
-    -- local maxLevel = GetMaxPlayerLevel()
-    local maxLevel = 70
-    local playerLevel = UnitLevel("PLAYER")
-    if playerLevel == maxLevel then
-        local playerGUID = UnitGUID("PLAYER")
-        local englishUnitClass, baseClassId = UnitClassBase("PLAYER")
 
-        charDefaults = {
-            [""..playerGUID..""] = {
-                client = true,                              -- flag if this character is owned by client (future use)
-                name = UnitName("PLAYER"),                  -- character's name
-                realm = GetRealmName(),                     -- character's realm
-                rating = 0,                                 -- set default rating to 0
-                season = nil,                               -- season placeholder (slow API)
-                class = baseClassId,                        -- Players class id #
-                data = nil,                                 -- character data placeholder (for reference)
-                keyId = 9001,                               -- placeholder keyid
-                keyLevel = 0,                               -- placeholder key level
-                expire = KeyMaster:WeeklyResetTime(),       -- When to reset the weekly data
-                timestamp = GetServerTime(),                -- creation timestamp the data (server time) may need changed
-                level = playerLevel,                        -- level reference for cleanup
-                vault = {},                                 -- vault information
-                teams = {                                   -- teams table (for later use)
-                    team1 = nil
-                }
+    local playerLevel = UnitLevel("PLAYER")
+    local playerGUID = UnitGUID("PLAYER")
+    local englishUnitClass, baseClassId = UnitClassBase("PLAYER")
+
+    charDefaults = {
+        [""..playerGUID..""] = {
+            client = true,                              -- flag if this character is owned by client (future use)
+            name = UnitName("PLAYER"),                  -- character's name
+            realm = GetRealmName(),                     -- character's realm
+            rating = 0,                                 -- set default rating to 0
+            season = nil,                               -- season placeholder (slow API)
+            class = baseClassId,                        -- Players class id #
+            data = nil,                                 -- character data placeholder (for reference)
+            keyId = 9001,                               -- placeholder keyid
+            keyLevel = 0,                               -- placeholder key level
+            expire = KeyMaster:WeeklyResetTime(),       -- When to reset the weekly data
+            timestamp = GetServerTime(),                -- creation timestamp the data (server time) may need changed
+            level = playerLevel,                        -- level reference for cleanup
+            vault = {},                                 -- vault information
+            teams = {                                   -- teams table (for later use)
+                team1 = nil
             }
         }
+    }
 
-    end
     return charDefaults
 end
 
---local maxLevel = GetMaxPlayerLevel() -- eliminate numourous duplicate calls
+
 function KeyMaster:CleanCharSavedData(data)
     if not data then
-       KeyMaster:_ErrorMsg("cleanCharSavedData","Misc","Character(s) data is nil.")
-       return
-   end
+        KeyMaster:_ErrorMsg("cleanCharSavedData","Misc","Character(s) data is nil.")
+        return
+    end
 
-   for k, v in pairs(data) do
-       local deleteME = false
-       -- long-winded season check/set becuase the API can be slow
-       local apiCheck = DungeonTools:GetCurrentSeason()
-       if v.season  then  
+    for k, v in pairs(data) do
+        local deleteME = false
+        -- long-winded season check/set becuase the API can be slow
+        local apiCheck = DungeonTools:GetCurrentSeason()
+        if v.season then  
             -- make sure api is available before we mess with data.
-           if apiCheck and apiCheck > 0 then -- if the API has responded, otherwise skip
-               if v.season < apiCheck then
-                   deleteME = true
-                   --table.remove(data, k)
-               else
-                   v.season = apiCheck
-               end
-           end
-       elseif apiCheck and apiCheck > 0 then -- login didn't populate this units season, so we do it now for any empty-season characters.
-           v.season = apiCheck
-       end
+            if apiCheck and apiCheck > 0 then -- if the API has responded, otherwise skip
+                if v.season < apiCheck then
+                    deleteME = true
+                    --table.remove(data, k)
+                else
+                    v.season = apiCheck
+                end
+            end
+        elseif apiCheck and apiCheck > 0 then -- login didn't populate this units season, so we do it now for any empty-season characters.
+            v.season = apiCheck
+        end
 
-       if v.level then -- nil check
-           if v.level < GetMaxPlayerLevel() then -- remove if level cap changed
-               deleteME = true
-               --table.remove(data, k)
-               return data
-           end
-       end
-       if v.expire then -- nil check
-           if v.expire < GetServerTime() then -- remove key data if expired
-               data[k].keyLevel = 0
-               data[k].keyId = 0
-               data[k].expire = KeyMaster:WeeklyResetTime()
-           end
-       else
-           data[k].expire = KeyMaster:WeeklyResetTime()
-       end
-       
-       if deleteME then data[k] = nil end
+        if v.expire then -- nil check
+            if v.expire < GetServerTime() then -- remove key data if expired
+                data[k].keyLevel = 0
+                data[k].keyId = 0
+                data[k].expire = KeyMaster:WeeklyResetTime()
+            end
+        else
+            data[k].expire = KeyMaster:WeeklyResetTime()
+        end
 
-   end
+        if deleteME then data[k] = nil end
 
-   if KeyMaster:GetTableLength(data) == 0 then
-       data = KeyMaster:CreateDefaultCharacterData()
-   end
+    end
 
-   return data 
+    if KeyMaster:GetTableLength(data) == 0 then
+        data = KeyMaster:CreateDefaultCharacterData()
+    end
+
+    return data 
 end
 
 -- This function gets run when the PLAYER_LOGIN event fires:
@@ -261,7 +253,8 @@ function KeyMaster:LOAD_SAVED_GLOBAL_VARIABLES()
             characterFilters = {
                 serverFilter = false,
                 filterNoRating = false,
-                filterNoKey = false
+                filterNoKey = false,
+                filterMaxLvl = true
             },
             miniMapButtonPos = {
                 ["minimapPos"] = 206,
@@ -277,6 +270,22 @@ function KeyMaster:LOAD_SAVED_GLOBAL_VARIABLES()
 
     -- This table defines the players default character information IF max level
     local charDefaults = KeyMaster:CreateDefaultCharacterData()
+
+    --function KeyMaster:PurgeOldCharacterData()
+    -- Purge all characters with incompatable data by version
+    if(KeyMaster_DB) then
+        local playerGUID = UnitGUID("player")
+        local buildVersion = KeyMaster_DB.addonConfig.version
+        if buildVersion ~= nil then
+            local _, _, major1, minor1, patch1 = strfind(buildVersion, "(%d+)%.(%d+)%.(%d+)")
+            major1 = tonumber(major1)
+            minor1 = tonumber(minor1)
+            patch1 = tonumber(patch1)
+            if (major1 <= 1 and minor1 < 3) then
+                KeyMaster_C_DB = {}      
+            end
+        end
+    end
 
     -- Copy the values from the defaults table into the saved variables table
     -- if data doesn't exist and assign the result to the global variable:

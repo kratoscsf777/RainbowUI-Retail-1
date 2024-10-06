@@ -386,6 +386,7 @@ local function fillMapGroupID(mapID)
 end
 
 local function fillEncountersID(mapID)
+-- ID by UiMapID in https://wago.tools/db2/JournalEncounter
     -- Tazavesh Lower
     if mapID == 1989 then
         return {{
@@ -421,6 +422,17 @@ local function fillEncountersID(mapID)
         },{
             encounterID = 1838,
         }}
+    -- Bolarus
+    elseif mapID == 1162 then
+        return {{
+            encounterID = 2654,
+        },{
+            encounterID = 2173,
+        },{
+            encounterID = 2134,
+        },{
+            encounterID = 2140,
+        }}
     -- Dawn Of The Infinite Lower
     elseif mapID == 2190 then
         return {{
@@ -453,6 +465,15 @@ local function fillEncountersID(mapID)
             encounterID = 1208,
         },{
             encounterID = 1210,
+        }}
+    -- Dawnbreaker
+    elseif mapID == 2359 then
+        return {{
+            encounterID = 2580,
+        },{
+            encounterID = 2581,
+        },{
+            encounterID = 2593,
         }}
     else
         return nil
@@ -611,8 +632,8 @@ local function ShowTimer()
         if Addon.season.ShowTimer then
             Addon.season:ShowTimer()
         end
-        Addon:KalielsTrackerFix()
-        ObjectiveTrackerFrame:SetCollapsed(true)
+        -- Addon:KalielsTrackerFix()
+        ObjectiveTrackerFrame:Hide()
         Addon:HideHelp()
     end
 end
@@ -692,7 +713,7 @@ function Addon:OnEvent(self, event, ...)
         if not (inInstance and instanceType == "party") then
             HideTimer()
             if ObjectiveTrackerFrame ~= nil then
-                ObjectiveTrackerFrame:SetCollapsed(false)
+                ObjectiveTrackerFrame:Show()
             end
         else
             Addon:UpdateProgress()

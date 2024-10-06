@@ -1,4 +1,5 @@
-﻿local IUF = CreateFrame("Frame", "InvenUnitFrames", UIParent)
+﻿if GetLocale()~="zhTW" and GetLocale()~="zhCN" then return end
+local IUF = CreateFrame("Frame", "InvenUnitFrames", UIParent)
 IUF:SetScript("OnEvent", function(self, event, ...) self[event](self, ...) end)
 IUF:RegisterEvent("ADDON_LOADED")
 IUF.units, IUF.links, IUF.objectOrder, IUF.visibleObject = {}, {}, {}, {}
@@ -85,6 +86,7 @@ local function changeParent(frame, prevParent, newParent)
 end
 
 function IUF:HideBlizzardPartyFrame(hide)
+
 	if hide then
 		for i = 1, MAX_PARTY_MEMBERS do
 			changeParent(_G["PartyMemberFrame"..i], UIParent, self.dummyParent)
@@ -123,16 +125,36 @@ local function hideBlizFrames()
 	end
 end
 
+local function hideBlizFrames2()
+	PlayerFrame:SetAlpha(0)
+	PetFrame:SetAlpha(0)
+	TargetFrame:SetAlpha(0)
+
+	--adjustment to avoid overlap
+	if not InCombatLockdown() then
+		PetFrame:SetScale(0.00001)
+		PlayerFrame:SetScale(0.00001)
+		TargetFrame:SetScale(0.00001)
+	end
+
+
+
+
+end
+
 function IUF:UPDATE_ALL_UI_WIDGETS()
 	hideBlizFrames()
+	hideBlizFrames2()
 end
 
 function IUF:CLIENT_SCENE_CLOSED()
 	hideBlizFrames()
+	hideBlizFrames2()
 end
 
 function IUF:CLIENT_SCENE_OPENED()
 	hideBlizFrames()
+	hideBlizFrames2()
 end
 
 function IUF:PLAYER_LOGIN()
@@ -301,6 +323,7 @@ function IUF:PLAYER_REGEN_ENABLED()
 	end
 	
 	hideBlizFrames()
+	hideBlizFrames2()
 end
 
 function IUF:PLAYER_REGEN_DISABLED()
@@ -315,6 +338,8 @@ function IUF:PLAYER_REGEN_DISABLED()
 	if self.onEnter and (self.db.tooltip == 2 or self.db.tooltip == 3) then
 		self:UpdateUnitTooltip(self.onEnter)
 	end
+	hideBlizFrames()
+	hideBlizFrames2()
 end
 
 local changeModelCamera = {
@@ -342,7 +367,10 @@ local changeModelCamera = {
 }
 
 function IUF:RefreshCamera(model)
-	--model:SetCamera(type(model:GetModelFileID()) == "string" and changeModelCamera[model:GetModelFileID():lower()] or 0)
+--	model:SetCamera(type(model:GetModelFileID()) == "string" and changeModelCamera[model:GetModelFileID():lower()] or 0)
+	model:SetPortraitZoom(1)
+ 
+
 end
 
 function IUF:CheckModel()
@@ -361,6 +389,8 @@ do
 	
 	-- 블리자드 유닛 프레임 숨김
 	function hideBlizzard(self)
+
+
 		if self then
 			UnregisterUnitWatch(self)
 			self:UnregisterAllEvents()

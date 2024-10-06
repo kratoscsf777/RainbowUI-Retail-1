@@ -20,6 +20,7 @@ Chain.TiesThatBind = 110003
 Chain.NewsFromBelow = 110004
 Chain.TheMachinesMarchToWar = 110005
 Chain.Chapter05 = 110006
+Chain.ToKillAQueen = 110007
 
 Database:AddChain(Chain.Introduction, {
     name = BtWQuests.L["Introduction"],
@@ -809,14 +810,151 @@ Database:AddChain(Chain.Chapter05, {
     },
     active = {
         type = "quest",
-        id = 0,
+        id = 78941,
         status = {'active', 'completed'},
     },
     completed = {
         type = "quest",
-        id = 0,
+        id = 83503,
     },
     items = {
+        {
+            type = "npc",
+            id = 223944,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78941,
+            x = 0,
+            connections = {
+                1, 2, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78942,
+            x = -1,
+            connections = {
+                3, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78943,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78950,
+            x = 1,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78948,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83503,
+            x = 0,
+        },
+    },
+})
+Database:AddChain(Chain.ToKillAQueen, {
+    name = { -- To Kill a Queen
+        type = "quest",
+        id = 82141,
+    },
+    buttonImage = 5912550,
+    expansion = EXPANSION_ID,
+    range = LEVEL_RANGE,
+    prerequisites = {
+        {
+            type = "level",
+            level = 78,
+        },
+    },
+    active = {
+        type = "quest",
+        id = 83587,
+    },
+    completed = {
+        type = "quest",
+        id = 82141,
+    },
+    items = {
+        {
+            type = "npc",
+            id = 227217,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83587,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 82124,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 82125,
+            x = 0,
+            connections = {
+                1, 2, 
+            },
+        },
+        {
+            type = "quest",
+            id = 82126,
+            x = -1,
+            connections = {
+                2, 
+            },
+        },
+        {
+            type = "quest",
+            id = 82127,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 82130,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 82141,
+            x = 0,
+        },
     },
 })
 local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded;
@@ -845,6 +983,14 @@ BtWQuestsDatabase:AddExpansionItems(EXPANSION_ID, {
         type = "chain",
         id = Chain.TheMachinesMarchToWar,
     },
+    {
+        type = "chain",
+        id = Chain.Chapter05,
+    },
+    {
+        type = "chain",
+        id = Chain.ToKillAQueen,
+    },
 })
 
 BtWQuestsDatabase:AddQuestItemsForChain(Chain.Introduction)
@@ -852,3 +998,5 @@ BtWQuestsDatabase:AddQuestItemsForChain(Chain.AgainstTheCurrent)
 BtWQuestsDatabase:AddQuestItemsForChain(Chain.TiesThatBind)
 BtWQuestsDatabase:AddQuestItemsForChain(Chain.NewsFromBelow)
 BtWQuestsDatabase:AddQuestItemsForChain(Chain.TheMachinesMarchToWar)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.Chapter05)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.ToKillAQueen)

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("CityofThreadsTrash", "DBM-Party-WarWithin", 8)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240820072838")
+mod:SetRevision("20240928080741")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -40,8 +40,8 @@ local warnUmbralWeave						= mod:NewCastAnnounce(446717, 3)--Reason to special w
 local specWarnShadowsofDoubt				= mod:NewSpecialWarningMoveAway(443436, nil, nil, nil, 1, 2)
 local yellShadowsofDoubt					= mod:NewShortYell(443436)
 local yellShadowsofDoubtFades				= mod:NewShortFadesYell(443436)
-local specWarnEarthShatter					= mod:NewSpecialWarningDodge(443500, nil, nil, nil, 2, 2)
-local specWarnNullSlam						= mod:NewSpecialWarningDodge(451543, nil, nil, nil, 2, 2)
+local specWarnEarthShatter					= mod:NewSpecialWarningDodge(443500, nil, nil, nil, 2, 15)
+local specWarnNullSlam						= mod:NewSpecialWarningDodge(451543, nil, nil, nil, 2, 15)
 local specWarnGossamerBarrage				= mod:NewSpecialWarningDodge(451423, nil, nil, nil, 2, 2)
 local specWarnDarkBarrage					= mod:NewSpecialWarningDodge(445813, nil, nil, nil, 2, 2)
 local specWarnTremorSlam					= mod:NewSpecialWarningRun(447271, nil, nil, nil, 4, 2)--Don't confuse with 437700 which is boss version
@@ -53,12 +53,12 @@ local specWarnMendingWeb					= mod:NewSpecialWarningInterrupt(452162, "HasInterr
 local specWarnVoidWave						= mod:NewSpecialWarningInterrupt(446086, "HasInterrupt", nil, nil, 1, 2)
 
 local timerShadowsofDoubtCD					= mod:NewCDNPTimer(11.1, 443436, nil, nil, nil, 3)--11.1-14.6
-local timerSilkBindingCD					= mod:NewCDNPTimer(24.5, 443430, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerEarthShatterCD					= mod:NewCDNPTimer(11, 443500, nil, nil, nil, 3)
-local timerNullSlamCD						= mod:NewCDNPTimer(24.9, 451543, nil, nil, nil, 3)
+local timerSilkBindingCD					= mod:NewCDPNPTimer(24.5, 443430, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerEarthShatterCD					= mod:NewCDPNPTimer(11, 443500, nil, nil, nil, 3)
+local timerNullSlamCD						= mod:NewCDPNPTimer(24.9, 451543, nil, nil, nil, 3)
 local timerGossamerBarrageCD				= mod:NewCDNPTimer(23, 451423, nil, nil, nil, 3)--Start to Start, non CCable caster
 local timerPerfumeTossCD					= mod:NewCDNPTimer(17, 450784, nil, nil, nil, 3)--Poor sample, need more data
-local timerMendingWebCD						= mod:NewCDNPTimer(16.6, 452162, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerMendingWebCD						= mod:NewCDPNPTimer(16.6, 452162, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerVenomousSprayCD					= mod:NewCDNPTimer(24.2, 434137, nil, nil, nil, 3)
 local timerDarkBarrageCD					= mod:NewCDNPTimer(27.9, 445813, nil, nil, nil, 3)
 local timerVoidWaveCD						= mod:NewCDNPTimer(15.4, 446086, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
@@ -98,8 +98,9 @@ local function XephCheck(self, guid)
 end
 
 function mod:SPELL_CAST_START(args)
-	local spellId = args.spellId
+	if not self.Options.Enabled then return end
 	if not self:IsValidWarning(args.sourceGUID) then return end
+	local spellId = args.spellId
 	if spellId == 443430 then
 		if self.Options.SpecWarn443430interrupt and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 			specWarnSilkBinding:Show(args.sourceName)
@@ -132,12 +133,12 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 443500 then
 		if self:AntiSpam(3, 2) then
 			specWarnEarthShatter:Show()
-			specWarnEarthShatter:Play("shockwave")
+			specWarnEarthShatter:Play("frontal")
 		end
 	elseif spellId == 451543 then
 		if self:AntiSpam(3, 2) then
 			specWarnNullSlam:Show()
-			specWarnNullSlam:Play("shockwave")
+			specWarnNullSlam:Play("frontal")
 		end
 	elseif spellId == 451423 then
 		if not xephEngaged then
@@ -188,6 +189,7 @@ function mod:SPELL_CAST_START(args)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
+	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 443436 then
@@ -211,11 +213,11 @@ function mod:SPELL_INTERRUPT(args)
 	if not self.Options.Enabled then return end
 	local spellId = args.extraSpellId
 	if spellId == 443430 then
-		timerSilkBindingCD:Start(24.5, args.sourceGUID)
+		timerSilkBindingCD:Start(24.5, args.destGUID)
 	elseif spellId == 452162 then
-		timerMendingWebCD:Start(16.6, args.sourceGUID)
+		timerMendingWebCD:Start(16.6, args.destGUID)
 	elseif spellId == 446086 then
-		timerVoidWaveCD:Start(15.4, args.sourceGUID)
+		timerVoidWaveCD:Start(15.4, args.destGUID)
 	end
 end
 
@@ -244,6 +246,7 @@ function mod:SPELL_AURA_REMOVED(args)
 end
 
 function mod:UNIT_DIED(args)
+	if not self.Options.Enabled then return end
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 220196 then--Herald of Ansurekha
 		timerShadowsofDoubtCD:Stop(args.destGUID)

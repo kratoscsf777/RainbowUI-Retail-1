@@ -1,14 +1,14 @@
-# [1.8.1](https://github.com/sragia/Exlist/tree/1.8.1) (2024-07-25)
+# [1.8.7](https://github.com/sragia/Exlist/tree/1.8.7) (2024-09-29)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.0...1.8.1)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.6...1.8.7)
 
 ## Highlights
 
- Small typo fix for accountsync 
+ Order currencies alphabetically 
 
 ## Commits
 
-Aigars Bedeicis (1):
+MarkW (1):
 
-- Fix typo
+- Sort currencies by name in the tooltip
 

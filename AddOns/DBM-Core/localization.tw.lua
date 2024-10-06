@@ -485,10 +485,11 @@ L.AUTO_TIMER_TEXTS.roleplay					= GUILD_INTEREST_RP
 L.AUTO_TIMER_TEXTS.combat					= "戰鬥開始"
 
 --This basically clones np only bar option and display text from regular counterparts
---L.AUTO_TIMER_TEXTS.cdnp = L.AUTO_TIMER_TEXTS.cd
---L.AUTO_TIMER_TEXTS.nextnp = L.AUTO_TIMER_TEXTS.next
---L.AUTO_TIMER_TEXTS.cdcountnp = L.AUTO_TIMER_TEXTS.cdcount
---L.AUTO_TIMER_TEXTS.nextcountnp = L.AUTO_TIMER_TEXTS.nextcount
+--L.AUTO_TIMER_TEXTS.cdnp					= L.AUTO_TIMER_TEXTS.cd -- OPTIONAL
+--L.AUTO_TIMER_TEXTS.nextnp				= L.AUTO_TIMER_TEXTS.next -- OPTIONAL
+--L.AUTO_TIMER_TEXTS.cdpnp				= L.AUTO_TIMER_TEXTS.cd -- OPTIONAL
+--L.AUTO_TIMER_TEXTS.nextpnp				= L.AUTO_TIMER_TEXTS.next -- OPTIONAL
+--L.AUTO_TIMER_TEXTS.castpnp				= L.AUTO_TIMER_TEXTS.cast -- OPTIONAL
 
 L.AUTO_TIMER_OPTIONS.target					= "計時條：$spell:%s減益效果持續時間"
 L.AUTO_TIMER_OPTIONS.targetcount			= "計時條：$spell:%s減益效果持續時間(包含計數)"
@@ -501,14 +502,12 @@ L.AUTO_TIMER_OPTIONS.ai						= "計時條：$spell:%s冷卻的AI計時條"
 L.AUTO_TIMER_OPTIONS.cd						= "計時條：$spell:%s冷卻時間"
 L.AUTO_TIMER_OPTIONS.cdcount				= "計時條：$spell:%s冷卻時間"
 L.AUTO_TIMER_OPTIONS.cdnp					= "計時條：只顯示名條的 $spell:%s 冷卻時間"
-L.AUTO_TIMER_OPTIONS.cdnpcount				= "計時條：只顯示名條的 $spell:%s 冷卻時間(包含計數)"
 L.AUTO_TIMER_OPTIONS.cdsource				= "計時條：$spell:%s冷卻時間以及來源"
 L.AUTO_TIMER_OPTIONS.cdspecial				= "計時條：特殊技能冷卻"
 L.AUTO_TIMER_OPTIONS.cdcombo				= "計時條：技能組合冷卻"--Used for combining 2 abilities into a single timer
 L.AUTO_TIMER_OPTIONS.next					= "計時條：下一次$spell:%s"
 L.AUTO_TIMER_OPTIONS.nextcount				= "計時條：下一次$spell:%s"
 L.AUTO_TIMER_OPTIONS.nextnp					= "計時條：只顯示名條的下一次$spell:%s"
-L.AUTO_TIMER_OPTIONS.nextnpcount			= "計時條：只顯示名條的下一次$spell:%s(包含計數)"
 L.AUTO_TIMER_OPTIONS.nextsource				= "計時條：下一次$spell:%s以及來源"
 L.AUTO_TIMER_OPTIONS.nextspecial			= "計時條：下一次特殊技能"
 L.AUTO_TIMER_OPTIONS.nextcombo				= "計時條：下一次技能組合"--Used for combining 2 abilities into a single timer
@@ -558,7 +557,7 @@ L.AUTO_YELL_ANNOUNCE_TEXT.fade				= "%s %%d秒後消退!"
 L.AUTO_YELL_ANNOUNCE_TEXT.shortfade			= "%%d"
 L.AUTO_YELL_ANNOUNCE_TEXT.iconfade			= "{rt%%2$d}%%1$d"
 L.AUTO_YELL_ANNOUNCE_TEXT.position 			= UnitName("player").." ({rt%%3$d})中了%1$s! (%%1$s - {rt%%2$d})"
-L.AUTO_YELL_ANNOUNCE_TEXT.shortposition 	= "{rt%%1$d}%s %%2$d"--Icon, Spellname, number
+L.AUTO_YELL_ANNOUNCE_TEXT.shortposition 	= "{rt%%1$d}%s"--Icon, Spellname
 L.AUTO_YELL_ANNOUNCE_TEXT.combo				= "%s與%%s"--Spell name (from option, plus spellname given in arg)
 L.AUTO_YELL_ANNOUNCE_TEXT.repeatplayer		= UnitName("player")--Doesn't need translation, it's just player name spam
 L.AUTO_YELL_ANNOUNCE_TEXT.repeaticon		= "{rt%%1$d}"
@@ -649,7 +648,7 @@ L.WORLD_BUFFS = {
 	zgHeartBooty						= "靈魂掠奪者血神已經被打敗了！我們不再有危險了！",
 	zgHeartYojamba						= "開始儀式，我的僕從們。我們必須把哈卡完全打回扭曲虛空中！",
 	rendHead							= "那個假的酋長，雷德·黑手，已經倒下了！",
-	--blackfathomBoon						= "boon of Blackfathom"
+	blackfathomBoon						= "黑澗深淵的恩賜"
 }
 
 -- Annoying popup, especially for classic players
@@ -664,3 +663,6 @@ L.DBM_INSTALL_PACKAGE_VANILLA	= "經典與探索賽季組件"
 L.DBM_INSTALL_PACKAGE_WRATH		= "巫妖王組件"
 L.DBM_INSTALL_PACKAGE_CATA		= "浩劫與重生組件"
 L.DBM_INSTALL_PACKAGE_DUNGEON	= "地下城、探究以及事件組件"
+
+-- Tests
+L.DBM_TAINTED_BY_TESTS			= "DBM在當前階段使用了包含時間扭曲的測試模式，建議使用DBM在真正的首領戰鬥中之前重新載入UI。一切都應該按預期工作但並不保證！"

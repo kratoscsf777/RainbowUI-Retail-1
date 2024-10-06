@@ -5,7 +5,7 @@ BaganatorCategoryViewBackpackViewMixin = CreateFromMixins(BaganatorItemViewCommo
 function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   BaganatorItemViewCommonBackpackViewMixin.OnLoad(self)
 
-  self.Layouts = {}
+  self.Container.Layouts = {}
   self.LiveLayouts = {}
   self.CachedLayouts = {}
 
@@ -14,10 +14,12 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   self.LayoutManager:OnLoad()
 
   self:RegisterEvent("CURSOR_CHANGED")
+  self:RegisterEvent("MODIFIER_STATE_CHANGED")
 
   addonTable.CallbackRegistry:RegisterCallback("ContentRefreshRequired",  function()
+    self.searchToApply = true
     self.LayoutManager:FullRefresh()
-    for _, layout in ipairs(self.Layouts) do
+    for _, layout in ipairs(self.Container.Layouts) do
       layout:RequestContentRefresh()
     end
     if self:IsVisible() and self.lastCharacter ~= nil then
@@ -43,13 +45,14 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
       end
     elseif settingName == addonTable.Config.Options.SORT_METHOD then
       self.LayoutManager:SettingChanged(settingName)
-      for _, layout in ipairs(self.Layouts) do
+      for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
       end
       if self:IsVisible() then
         self:UpdateForCharacter(self.lastCharacter, self.isLive)
       end
     elseif settingName == addonTable.Config.Options.JUNK_PLUGIN or settingName == addonTable.Config.Options.UPGRADE_PLUGIN then
+      self.searchToApply = true
       self.LayoutManager:SettingChanged(settingName)
       if self:IsVisible() then
         self:UpdateForCharacter(self.lastCharacter, self.isLive)
@@ -60,7 +63,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   addonTable.CallbackRegistry:RegisterCallback("CategoryAddItemStart", function(_, fromCategory, itemID, itemLink, addedDirectly)
     self.addToCategoryMode = fromCategory
     self.addedToFromCategory = addedDirectly == true
-    if self:IsVisible() then
+    if self:IsVisible() and addonTable.CategoryViews.Utilities.GetAddButtonsState() then
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
     end
   end)
@@ -68,6 +71,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   self.AllButtons = {}
   tAppendAll(self.AllButtons, self.TopButtons)
   tAppendAll(self.AllButtons, self.AllFixedButtons)
+  table.insert(self.AllButtons, self.CurrencyButton)
 
   addonTable.AddBagTransferActivationCallback(function()
     self:UpdateTransferButton()
@@ -94,6 +98,8 @@ function BaganatorCategoryViewBackpackViewMixin:OnEvent(eventName)
     if self:IsVisible() then
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
     end
+  elseif eventName == "MODIFIER_STATE_CHANGED" and self.addToCategoryMode and (addonTable.CategoryViews.Utilities.GetAddButtonsState() or self.LayoutManager.showAddButtons) and C_Cursor.GetCursorItem() then
+    self:UpdateForCharacter(self.lastCharacter, self.isLive)
   end
 end
 
@@ -113,7 +119,7 @@ function BaganatorCategoryViewBackpackViewMixin:ApplySearch(text)
   end
   self.searchToApply = false
 
-  for _, layout in ipairs(self.Layouts) do
+  for _, layout in ipairs(self.Container.Layouts) do
     if layout:IsVisible() then
       layout:ApplySearch(text)
     end
@@ -148,11 +154,7 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
     addonTable.NewItems:ImportNewItems(true)
   end
 
-  local sideSpacing, topSpacing = 13, 14
-  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
-    sideSpacing = 8
-    topSpacing = 7
-  end
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
   self.isGrouping = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_ITEM_GROUPING) and (not self.splitStacksDueToTransfer or not self.isLive)
 
@@ -161,28 +163,38 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
   end
 
   local characterData = Syndicator.API.GetCharacter(character)
+
+  if not characterData then
+    addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
+    return
+  end
+
   local bagTypes = addonTable.CategoryViews.Utilities.GetBagTypes(characterData, "bags", Syndicator.Constants.AllBagIndexes)
   local bagWidth = addonTable.Config.Get(addonTable.Config.Options.BAG_VIEW_WIDTH)
 
   self.LayoutManager:Layout(characterData.bags, bagWidth, bagTypes, Syndicator.Constants.AllBagIndexes, sideSpacing, topSpacing, function(maxWidth, maxHeight)
-    self:SetSize(
-      math.max(addonTable.CategoryViews.Constants.MinWidth, maxWidth + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2),
-      maxHeight + 75 + topSpacing / 2
+    self.Container:SetSize(
+      math.max(addonTable.CategoryViews.Constants.MinWidth, maxWidth),
+      maxHeight
     )
-    self.CurrencyWidget:UpdateCurrencyTextVisibility(sideSpacing + addonTable.Constants.ButtonFrameOffset)
+
+    local lastButton = self.CurrencyButton
+    lastButton:ClearAllPoints()
+    lastButton:SetPoint("BOTTOM", self, "BOTTOM", 0, 6)
+    lastButton:SetPoint("LEFT", self.Container, -2, 0)
+
+    self.CurrencyWidget:UpdateCurrencyTextPositions(self.Container:GetWidth() - lastButton:GetWidth() - 10)
+
+    self:OnFinished()
 
     local searchText = self.SearchWidget.SearchBox:GetText()
     if self.searchToApply then
       self:ApplySearch(searchText)
     end
 
-    self:HideExtraTabs()
-
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       addonTable.Utilities.DebugOutput("-- updateforcharacter backpack", debugprofilestop() - start)
     end
-
-    self:UpdateAllButtons()
 
     addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
   end)

@@ -1,8 +1,12 @@
 # Details! Damage Meter
 
-## [Details.12888.160](https://github.com/Tercioo/Details-Damage-Meter/tree/Details.12888.160) (2024-08-26)
-[Full Changelog](https://github.com/Tercioo/Details-Damage-Meter/compare/Details.12879.159...Details.12888.160) 
+## [Details.13111.161](https://github.com/Tercioo/Details-Damage-Meter/tree/Details.13111.161) (2024-10-04)
+[Full Changelog](https://github.com/Tercioo/Details-Damage-Meter/compare/Details.13096.161...Details.13111.161) 
 
-- Libraries Updates, Quick fixes, Version bump for wow 11 launch  
-- Fixed custom display My Spells not using spell school color and tooltip being to small  
-- Duspels  
+- Framework Update  
+- Merge pull request #841 from Flamanis/Fix-Freezing-Venom  
+    Fix "Freezing Venom"  
+- Fix "Freezing Venom"  
+- Merge pull request #840 from Flamanis/Subtract-Deaths-M+  
+    Subtract deaths from total run time for m+  
+- Subtract deaths from total run time  

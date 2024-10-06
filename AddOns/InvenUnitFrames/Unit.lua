@@ -1,4 +1,5 @@
-﻿local IUF = InvenUnitFrames
+﻿if GetLocale()~="zhTW" and GetLocale()~="zhCN" then return end
+local IUF = InvenUnitFrames
 local callbacks = IUF.callbacks
 
 local _G = _G
@@ -82,6 +83,7 @@ end
 local statusBarValueFunc = {
 	-- [퍼센트%]
 	function(p, v)
+
 		if v == 0 then
 			return ""
 		else
@@ -133,9 +135,9 @@ local statusBarValueFunc = {
 	-- [손실 짧게]
 	function(p, v) return shortValue(v - min(p, v)) end,
 	-- [현재]
-	function(p) return abbreviateLargeNumbers(p) end,
+	function(p, v) return abbreviateLargeNumbers(p) end,
 	-- [현재 짧게]
-	function(p) return shortValue(min(p, v)) end,
+	function(p, v) return shortValue(min(p, v)) end,
 	-- [최대]
 	function(p, v) return abbreviateLargeNumbers(v) end,
 	-- [최대 짧게]
@@ -167,6 +169,7 @@ local statusBarValueFunc = {
 }
 
 function IUF:SetStatusBarValue(fontString, valueType, value, valuemax)
+
 	if statusBarValueFunc[valueType or 0] then
 		fontString:SetText(statusBarValueFunc[valueType](value, valuemax))
 	else
@@ -175,6 +178,7 @@ function IUF:SetStatusBarValue(fontString, valueType, value, valuemax)
 end
 
 function IUF:HasStatusBarDisplay(display)
+
 	if statusBarValueFunc[display or 0] then
 		return true
 	else

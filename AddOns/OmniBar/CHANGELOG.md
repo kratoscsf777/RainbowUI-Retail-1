@@ -1,6 +1,7 @@
 # OmniBar
 
-## [v22](https://github.com/jordonwow/omnibar/tree/v22) (2024-08-15)
-[Full Changelog](https://github.com/jordonwow/omnibar/compare/v21...v22) [Previous Releases](https://github.com/jordonwow/omnibar/releases)
+## [v24](https://github.com/jordonwow/omnibar/tree/v24) (2024-09-04)
+[Full Changelog](https://github.com/jordonwow/omnibar/compare/v23...v24) [Previous Releases](https://github.com/jordonwow/omnibar/releases)
 
-- 11.0.2 Changes (#262)  
+- Merge Voidwrath for both Discipline and Shadow  
+- TWW Tuning Patch (#264)  

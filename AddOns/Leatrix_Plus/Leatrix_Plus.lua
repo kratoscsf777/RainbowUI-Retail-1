@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 11.0.06 (28th August 2024)
+-- 	Leatrix Plus 11.0.11 (2nd October 2024)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "11.0.06"
+	LeaPlusLC["AddonVer"] = "11.0.11"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -34,8 +34,11 @@
 			end)
 			return
 		end
-		if gametocversion and gametocversion >= 110000 then -- 11.0.0
+		if gametocversion and gametocversion >= 110002 then -- 11.0.2
 			LeaPlusLC.NewPatch = true
+		end
+		if gametocversion and gametocversion >= 110005 then -- 11.0.5
+			LeaPlusLC.NewPatch1105 = true
 		end
 	end
 
@@ -1243,14 +1246,15 @@
 			LeaPlusLC:MakeCB(MountPanel, "MuteMechsuits", "Mechsuits", 150, -172, false, "If checked, mechsuits will be quieter.|n|nThis applies to Felsteel Annihilator, Lightforged Warframe, Sky Golem and other mechsuits.")
 			LeaPlusLC:MakeCB(MountPanel, "MuteOttuks", "Ottuks", 150, -192, false, "If checked, ottuks will be quieter.")
 			LeaPlusLC:MakeCB(MountPanel, "MutePanthers", "Panthers", 150, -212, false, "If checked, the jewelcrafting panther mounts will be quieter.")
-			LeaPlusLC:MakeCB(MountPanel, "MuteRazorwings", "Razorwings", 150, -232, false, "If checked, razorwings will be muted.")
+			LeaPlusLC:MakeCB(MountPanel, "MuteRabbits", "Rabbits", 150, -232, false, "If checked, divine rabbit mounts will be quieter.|n|nThis applies to Jade, Bright Foreseer.")
 
-			LeaPlusLC:MakeCB(MountPanel, "MuteRockets", "Rockets", 284, -92, false, "If checked, rockets will be muted.")
-			LeaPlusLC:MakeCB(MountPanel, "MuteSoulEaters", "Soul Eaters", 284, -112, false, "If checked, Gladiator Soul Eater mounts will be quieter.")
-			LeaPlusLC:MakeCB(MountPanel, "MuteSoulseekers", "Soulseekers", 284, -132, false, "If checked, soulseekers will be quieter.|n|nThis applies to Corridor Creeper, Mawsworn Soulhunter and Bound Shadehound.")
-			LeaPlusLC:MakeCB(MountPanel, "MuteTravelers", "Travelers", 284, -152, false, "If checked, traveling merchant greetings and farewells will be muted.|n|nThis applies to Traveler's Tundra Mammoth, Grand Expedition Yak and Mighty Caravan Brutosaur.")
-			LeaPlusLC:MakeCB(MountPanel, "MuteUnicorns", "Unicorns", 284, -172, false, "If checked, unicorns will be quieter.|n|nThis applies to Lucid Nightmare, Wild Dreamrunner, Pureheart Courser and other unicorn mounts.")
-			LeaPlusLC:MakeCB(MountPanel, "MuteZeppelins", "Zeppelins", 284, -192, false, "If checked, zeppelins will be muted.|n|nThis applies to zeppelin mounts and transports.")
+			LeaPlusLC:MakeCB(MountPanel, "MuteRazorwings", "Razorwings", 284, -92, false, "If checked, razorwings will be muted.")
+			LeaPlusLC:MakeCB(MountPanel, "MuteRockets", "Rockets", 284, -112, false, "If checked, rockets will be muted.")
+			LeaPlusLC:MakeCB(MountPanel, "MuteSoulEaters", "Soul Eaters", 284, -132, false, "If checked, Gladiator Soul Eater mounts will be quieter.")
+			LeaPlusLC:MakeCB(MountPanel, "MuteSoulseekers", "Soulseekers", 284, -152, false, "If checked, soulseekers will be quieter.|n|nThis applies to Corridor Creeper, Mawsworn Soulhunter and Bound Shadehound.")
+			LeaPlusLC:MakeCB(MountPanel, "MuteTravelers", "Travelers", 284, -172, false, "If checked, traveling merchant greetings and farewells will be muted.|n|nThis applies to Traveler's Tundra Mammoth, Grand Expedition Yak and Mighty Caravan Brutosaur.")
+			LeaPlusLC:MakeCB(MountPanel, "MuteUnicorns", "Unicorns", 284, -192, false, "If checked, unicorns will be quieter.|n|nThis applies to Lucid Nightmare, Wild Dreamrunner, Pureheart Courser and other unicorn mounts.")
+			LeaPlusLC:MakeCB(MountPanel, "MuteZeppelins", "Zeppelins", 284, -212, false, "If checked, zeppelins will be muted.|n|nThis applies to zeppelin mounts and transports.")
 
 			LeaPlusLC:MakeTx(MountPanel, "Specific", 418, -72)
 			LeaPlusLC:MakeCB(MountPanel, "MuteBanLu", "Ban-Lu", 418, -92, false, "If checked, Ban-Lu will no longer talk to you.")
@@ -4082,7 +4086,7 @@
 			end
 
 			-- Set style when dropdown menu is updated and on startup
-			LeaPlusCB["PlayerChainMenu"]:RegisterCallback("OnUpdate", SetChainStyle)
+			LeaPlusCB["PlayerChainMenu"]:RegisterCallback("OnMenuClose", SetChainStyle)
 			SetChainStyle()
 
 			-- Help button hidden
@@ -5259,7 +5263,6 @@
 			LeaPlusLC:MakeTx(SideMinimap, "Cluster scale", 356, -72)
 			LeaPlusLC:MakeSL(SideMinimap, "MiniClusterScale", "Drag to set the cluster scale.", 0.5, 2, 0.1, 356, -92, "%.2f")
 
-
 			----------------------------------------------------------------------
 			-- Hide addon menu
 			----------------------------------------------------------------------
@@ -5973,6 +5976,21 @@
 						myButton:HookScript("OnLeave", function()
 							GameTooltip:Hide()
 						end)
+						if ZGV_Notification_Entry_Template_Mixin then
+							-- Fix notification system entry height
+							hooksecurefunc(ZGV_Notification_Entry_Template_Mixin, "UpdateHeight", function(self)
+								self:Show()
+								local height = 46
+								if ZGV and ZGV.db and ZGV.db.profile and ZGV.db.profile.nc_size and ZGV.db.profile.nc_size == 1 then height = 36 end
+								height = height + (self.time:IsVisible() and self.time:GetStringHeight()+0 or 0)
+								height = height + (self.title:IsVisible() and self.title:GetStringHeight()+3 or 0)
+								height = height + (self.text:IsVisible() and self.text:GetStringHeight()+3 or 0)
+								height = height + (self.SpecialButton and self.SpecialButton:IsVisible() and self.SpecialButton:GetHeight()+8 or 0)
+								if (self.single or self.special) then height = max(height,25) end
+								self:SetHeight(height)
+								self:Hide()
+							end)
+						end
 					elseif name == "BtWQuestsMinimapButton"				-- BtWQuests
 						or name == "TomCats-MinimapButton"				-- TomCat's Tours
 						or name == "TomCats-LoveIsInTheAirMinimapButton2023"
@@ -6322,6 +6340,7 @@
 				["TransLantern"] = {44212}, -- Weighted Jack-o'-Lantern
 				["TransWitch"] = {279509}, -- Lucille's Sewing Needle (witch)
 				["TransTurkey"] = {61781}, -- Turkey (Pilgrim's Bounty)
+				["TransCursedPickaxe"] = {454405}, -- Cursed Pickaxe (weapon)
 
 				-- Noblegarden: Noblegarden Bunny
 				["TransNobleBunny"] = {
@@ -6418,6 +6437,9 @@
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransLantern", "Hallow's End: Weighted Jack-o'-Lantern", 16,  -((row - 1) * 20) - 2, false, "If checked, the Weighted Jack-o'-Lantern transform will be removed when applied.")
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransNobleBunny", "Noblegarden: Noblegarden Bunny", 16,  -((row - 1) * 20) - 2, false, "If checked, the Noblegarden bunny transforms will be removed when applied.")
 			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransTurkey", "Pilgrim's Bounty: Turkey Shooter", 16,  -((row - 1) * 20) - 2, false, "If checked, the Turkey Shooter transform will be removed when applied.")
+
+			row = row + 2; LeaPlusLC:MakeTx(transPanel.scrollChild, "Items", 16,  -(row - 1) * 20 - 2)
+			row = row + 1; LeaPlusLC:MakeCB(transPanel.scrollChild, "TransCursedPickaxe", "Cursed Pickaxe", 16,  -((row - 1) * 20) - 2, false, "If checked, the Cursed Pickaxe transform will be removed when applied.|n|nYou can mute the associated sounds with the mute game sounds combat shouts option.")
 
 			-- Debug
 			-- RemoveCommentToEnableDebug = true
@@ -8733,8 +8755,8 @@
 			LeaPlusCB["NoCooldownDuration"]:HookScript("OnClick", SavePanelControls)
 			LeaPlusCB["CooldownsOnPlayer"]:HookScript("OnClick", SavePanelControls)
 
-			-- Help button tooltip
-			CooldownPanel.h.tiptext = L["Enter the spell IDs for the cooldown icons that you want to see.|n|nIf a cooldown icon normally appears under the pet frame, check the pet checkbox.|n|nCooldown icons are saved to your class and specialisation."]
+			-- Help button hidden
+			CooldownPanel.h:Hide()
 
 			-- Back button handler
 			CooldownPanel.b:SetScript("OnClick", function()
@@ -8792,6 +8814,9 @@
 			local specTagBanner = CooldownPanel:CreateFontString(nil, 'ARTWORK', 'GameFontNormal')
 			specTagBanner:SetPoint("TOPLEFT", 384, -72)
 			specTagBanner:SetText(specTagName)
+
+			-- Add help button
+			LeaPlusLC:CreateHelpButton("ShowCooldownsHelpButton", CooldownPanel, specTagBanner, "Enter the spell IDs for the cooldown icons that you want to see.|n|nIf a cooldown icon normally appears under the pet frame, check the pet checkbox.|n|nCooldown icons are saved to your class and specialisation.")
 
             -- Set controls when spec changes
             local swapFrame = CreateFrame("FRAME")
@@ -8977,7 +9002,7 @@
 			end
 
 			-- Set controls when dropdown menu is changed and on startup
-			LeaPlusCB["TooltipAnchorMenu"]:RegisterCallback("OnUpdate", SetAnchorControls)
+			LeaPlusCB["TooltipAnchorMenu"]:RegisterCallback("OnMenuClose", SetAnchorControls)
 			SetAnchorControls()
 
 			-- Help button hidden
@@ -11107,7 +11132,7 @@
 				LeaPlusLC:LoadVarChk("MaxCameraZoom", "Off")				-- Max camera zoom
 
 				LeaPlusLC:LoadVarChk("NoRestedEmotes", "Off")				-- Silence rested emotes
-				LeaPlusLC:LoadVarChk("KeepAudioSynced", "Off")				-- Keep audio synced
+				LeaPlusLC:LoadVarChk("KeepAudioSynced", "On")				-- Keep audio synced
 				LeaPlusLC:LoadVarChk("MuteGameSounds", "Off")				-- Mute game sounds
 				LeaPlusLC:LoadVarChk("MuteMountSounds", "Off")				-- Mute mount sounds
 				LeaPlusLC:LoadVarChk("MuteCustomSounds", "Off")				-- Mute custom sounds
@@ -11260,8 +11285,8 @@
 					end
 				end
 
-				if LeaPlusLC.NewPatch then
-					-- LockDF("CombatPlates", "Not currently available in The War Within.")
+				if LeaPlusLC.NewPatch1105 then
+					LockDF("CharAddonList", "This option is now built into the game.")
 				end
 
 				-- Run other startup items
@@ -11784,22 +11809,18 @@
 	function LeaPlusLC:MakeSL(frame, field, caption, low, high, step, x, y, form)
 
 		-- Create slider control
-		local Slider = CreateFrame("Slider", "LeaPlusGlobalSlider" .. field, frame, "OptionssliderTemplate")
-		LeaPlusCB[field] = Slider;
+		local Slider = CreateFrame("Slider", nil, frame, "UISliderTemplate")
+		LeaPlusCB[field] = Slider
 		Slider:SetMinMaxValues(low, high)
 		Slider:SetValueStep(step)
 		Slider:EnableMouseWheel(true)
 		Slider:SetPoint('TOPLEFT', x,y)
 		Slider:SetWidth(100)
 		Slider:SetHeight(20)
-		Slider:SetHitRectInsets(0, 0, 0, 0);
+		Slider:SetHitRectInsets(0, 0, 0, 0)
 		Slider.tiptext = L[caption]
 		Slider:SetScript("OnEnter", LeaPlusLC.TipSee)
 		Slider:SetScript("OnLeave", GameTooltip_Hide)
-
-		-- Remove slider text
-		_G[Slider:GetName().."Low"]:SetText('');
-		_G[Slider:GetName().."High"]:SetText('');
 
 		-- Create slider label
 		Slider.f = Slider:CreateFontString(nil, 'BACKGROUND')
@@ -12822,7 +12843,7 @@
 				else
 					-- List playable movie IDs
 					local count = 0
-					for i = 1, 1000 do
+					for i = 1, 5000 do
 						if IsMoviePlayable(i) then
 							print(i)
 							count = count + 1
@@ -13604,12 +13625,12 @@
 					-- Panel contents
 					LeaPlusLC:MakeTx(frame, "Sound Limit", 16, -12)
 					local endBox = LeaPlusLC:CreateEditBox("SoundEndBox", frame, 116, 10, "TOPLEFT", 16, -32, "SoundEndBox", "SoundEndBox")
-					endBox:SetText(5000000)
+					endBox:SetText(9000000)
 					endBox:SetScript("OnMouseWheel", function(self, delta)
 						local endSound = tonumber(endBox:GetText())
 						if endSound then
 							if delta == 1 then endSound = endSound + LeaPlusLC.SoundByte else endSound = endSound - LeaPlusLC.SoundByte end
-							if endSound < 1 then endSound = 1 elseif endSound >= 5000000 then endSound = 5000000 end
+							if endSound < 1 then endSound = 1 elseif endSound >= 9000000 then endSound = 9000000 end
 							endBox:SetText(endSound)
 						else
 							endSound = 100000
@@ -13617,16 +13638,16 @@
 						end
 					end)
 					-- Set limit button
-					frame.btn = LeaPlusLC:CreateButton("muteRangeButton", frame, "SET LIMIT", "TOPLEFT", 16, -72, 0, 25, true, "Click to set the sound file limit.  Use the mousewheel on the editbox along with the step buttons below to adjust the sound limit.  Acceptable range is from 1 to 5000000.  Sound files higher than this limit will be muted.")
+					frame.btn = LeaPlusLC:CreateButton("muteRangeButton", frame, "SET LIMIT", "TOPLEFT", 16, -72, 0, 25, true, "Click to set the sound file limit.  Use the mousewheel on the editbox along with the step buttons below to adjust the sound limit.  Acceptable range is from 1 to 9000000.  Sound files higher than this limit will be muted.")
 					frame.btn:ClearAllPoints()
 					frame.btn:SetPoint("LEFT", endBox, "RIGHT", 10, 0)
 					frame.btn:SetScript("OnClick", function()
 						local endSound = tonumber(endBox:GetText())
 						if endSound then
-							if endSound > 5000000 then endSound = 5000000 endBox:SetText(endSound) end
+							if endSound > 9000000 then endSound = 9000000 endBox:SetText(endSound) end
 							frame.btn:SetText("WAIT")
 							C_Timer.After(0.1, function()
-								for i = 1, 5000000 do
+								for i = 1, 9000000 do
 									MuteSoundFile(i)
 								end
 								for i = 1, endSound do
@@ -13652,7 +13673,7 @@
 					frame.MuteAllBtn:SetScript("OnClick", function()
 						frame.MuteAllBtn:SetText("WAIT")
 						C_Timer.After(0.1, function()
-							for i = 1, 5000000 do
+							for i = 1, 9000000 do
 								MuteSoundFile(i)
 							end
 							Sound_GameSystem_RestartSoundSystem()
@@ -13668,7 +13689,7 @@
 					frame.UnmuteAllBtn:SetScript("OnClick", function()
 						frame.UnmuteAllBtn:SetText("WAIT")
 						C_Timer.After(0.1, function()
-							for i = 1, 5000000 do
+							for i = 1, 9000000 do
 								UnmuteSoundFile(i)
 							end
 							Sound_GameSystem_RestartSoundSystem()
@@ -13972,7 +13993,7 @@
 				LeaPlusLC:Print(L["Checkboxes can be set to On or Off."] .. "|n")
 				for key, value in pairs(LeaPlusDB) do
 					if LeaPlusCB[key] and LeaPlusCB[key].f then
-						if not _G["LeaPlusGlobalSlider" .. key] then
+						if LeaPlusCB[key]:GetObjectType() ~= "Slider" and LeaPlusCB[key]:GetObjectType() ~= "Button" then
 							LeaPlusLC:Print(string.gsub(LeaPlusCB[key].f:GetText(), "%*$", "") .. ": |cffffffff" .. key .. "|r |cff1eff0c(" .. value .. ")|r")
 						end
 					end
@@ -13982,16 +14003,16 @@
 				LeaPlusLC:Print(L["Sliders can be set to a numeric value which must be in the range supported by the slider."] .. "|n")
 				for key, value in pairs(LeaPlusDB) do
 					if LeaPlusCB[key] and LeaPlusCB[key].f then
-						if _G["LeaPlusGlobalSlider" .. key] then
+						if LeaPlusCB[key]:GetObjectType() == "Slider" then
 							LeaPlusLC:Print("Slider: " .. "|cffffffff" .. key .. "|r |cff1eff0c(" .. value .. ")|r" .. " (" .. string.gsub(LeaPlusCB[key].f:GetText(), "%*$", "") .. ")" )
 						end
 					end
 				end
 				-- Dropdowns
 				LeaPlusLC:Print("|n" .. L["Dropdowns"] .. "|n")
-				LeaPlusLC:Print(L["Sliders can be set to a numeric value which must be in the range supported by the dropdown."] .. "|n")
+				LeaPlusLC:Print(L["Dropdowns can be set to a numeric value which must be in the range supported by the dropdown."] .. "|n")
 				for key, value in pairs(LeaPlusDB) do
-					if key and LeaPlusCB["ListFrame" .. key] then
+					if LeaPlusCB[key] and LeaPlusCB[key]:GetObjectType() == "Button" and LeaPlusLC[key] then
 						LeaPlusLC:Print("Dropdown: " .. "|cffffffff" .. key .. "|r |cff1eff0c(" .. value .. ")|r")
 					end
 				end

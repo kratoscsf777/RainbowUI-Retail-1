@@ -1,4 +1,6 @@
-### Changes in 110000.119-Release:
+### Changes in 110000.121-Release:
 
-- Fixed: Settings for classic
+- Changed: Updated shatterable items (Gleaming Shatter support)
+- Fixed: Error on cataclysm
+- Fixed: Profession items not being disenchantable
 

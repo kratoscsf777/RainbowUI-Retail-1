@@ -129,6 +129,7 @@ function GGUI:MakeFrameMoveable(gFrame)
     end)
     gFrame.frame:HookScript("OnMouseUp", function(self, button)
         gFrame.frame.hookFrame:StopMovingOrSizing()
+        if not gFrame.preMoveAnchorParent then return end
         local x, y = gFrame.frame.hookFrame:GetCenter()
         local relativeX, relativeY = gFrame.preMoveAnchorParent:GetCenter()
 
@@ -500,6 +501,13 @@ function GGUI.Frame:new(options)
     frame:SetFrameStrata(options.frameStrata or options.parent:GetFrameStrata())
     frame:SetFrameLevel(options.frameLevel or (options.parent:GetFrameLevel() + 1))
 
+    ---@type number sourced by GetTime() which gives the id of the current render frame
+    self.onShowRenderFrameTimestamp = 0
+
+    frame:HookScript("OnShow", function()
+        self.onShowRenderFrameTimestamp = tonumber(GUTIL:Round(GetTime(), 1))
+    end)
+
     if options.raiseOnInteraction then
         frame:SetToplevel(true)
     end
@@ -513,9 +521,14 @@ function GGUI.Frame:new(options)
         frame:HookScript("OnUpdate", function()
             if IsMouseButtonDown("LeftButton") and frame:IsShown() then
                 if not frame:IsMouseOver() then
-                    frame:Hide()
-                    if self.onCloseCallback then
-                        self.onCloseCallback()
+                    local renderFrameTimestamp = tonumber(GUTIL:Round(GetTime(), 1))
+                    -- if render frame time stamp is younger than 2 secs
+                    -- due to the frame being able to set to visible by a button that is not in its mouse over area
+                    if renderFrameTimestamp > (self.onShowRenderFrameTimestamp + 0.3) then
+                        frame:Hide()
+                        if self.onCloseCallback then
+                            self.onCloseCallback()
+                        end
                     end
                 end
             end
@@ -1579,7 +1592,7 @@ function GGUI.Text:SetText(text)
     self.frame:SetText(text)
 end
 
----@param color GUTIL.COLORS
+---@param color GUTIL.COLORS?
 function GGUI.Text:SetColor(color)
     local text = GUTIL:StripColor(self:GetText())
     if color then
@@ -1704,7 +1717,7 @@ end
 ---@field sizeX? number
 ---@field sizeY? number
 ---@field adjustWidth? boolean
----@field clickCallback? function
+---@field clickCallback? fun(button: GGUI.Button, mouseButton: MouseButton)
 ---@field initialStatusID? string
 ---@field macro? boolean
 ---@field secure? boolean
@@ -1867,9 +1880,11 @@ function GGUI.Button:new(options)
     if not self.macro then
         self.clickCallback = options.clickCallback
 
-        button:SetScript("OnClick", function()
-            if self.clickCallback then
-                self.clickCallback(self)
+        button:RegisterForClicks("AnyUp", "AnyDown")
+
+        button:SetScript("OnClick", function(_, button, down)
+            if down and self.clickCallback then
+                self.clickCallback(self, button)
             end
         end)
     end
@@ -2927,6 +2942,7 @@ function GGUI.FrameList:new(options)
     options.rowScale = options.rowScale or 1
     self.autoAdjustHeight = options.autoAdjustHeight or false
     self.autoAdjustHeightCallback = options.autoAdjustHeightCallback
+    self.maxAutoAdjustHeight = options.maxAutoAdjustHeight
     self.rowBackdrops = options.rowBackdrops
     self.rowScale = options.rowScale
     self.rowHeight = options.rowHeight
@@ -3459,6 +3475,11 @@ function GGUI.FrameList:AdjustHeight()
     local headerOffset = 10
     local newHeight = (#self.activeRows * self.rowHeight) + headerOffset
 
+    if self.maxAutoAdjustHeight then
+        -- limit to maxHeightAdjustment
+        newHeight = math.min(self.maxAutoAdjustHeight, newHeight)
+    end
+
     self.frame:SetSize(self.frame:GetWidth(), newHeight)
 
     if self.autoAdjustHeightCallback then
@@ -3824,10 +3845,13 @@ end
 ---@field tooltip? string
 
 ---@class GGUI.CheckboxSelectorConstructorOptions : GGUI.ConstructorOptions
----@field buttonOptions? GGUI.ButtonConstructorOptions
----@field selectionFrameOptions? GGUI.FrameConstructorOptions
 ---@field initialItems? GGUI.CheckboxSelector.CheckboxItem[]
----@field savedVariablesTable? table
+---@field savedVariablesTable table<any, boolean>
+---@field parent? Frame
+---@field anchorPoints GGUI.AnchorPoint[]
+---@field sizeX number
+---@field sizeY number
+---@field label string
 ---@field onSelectCallback? fun(CheckboxSelector: GGUI.CheckboxSelector, selectedItem: string, selectedValue: boolean)
 
 
@@ -3838,118 +3862,33 @@ GGUI.CheckboxSelector = GGUI.Widget:extend()
 ---@param options GGUI.CheckboxSelectorConstructorOptions
 function GGUI.CheckboxSelector:new(options)
     options = options or {}
-    options.selectionFrameOptions = options.selectionFrameOptions or {}
     self.onSelectCallback = options.onSelectCallback or function() end
-    ---@type table<any, boolean>
-    self.selectedValues = {}
+    self.savedVariablesTable = options.savedVariablesTable or {}
+    local frame = CreateFrame("DropdownButton", nil, options.parent,
+        "WowStyle1FilterDropdownTemplate")
+    GGUI.CheckboxSelector.super.new(self, frame)
+    self.frame:SetText(tostring(options.label or "Select"))
+    GGUI:SetPointsByAnchorPoints(self.frame, options.anchorPoints)
+    self.selectionItems = options.initialItems or {}
 
-    self.savedVariablesTable = options.savedVariablesTable
-
-    options.buttonOptions = options.buttonOptions or {}
-
-    options.buttonOptions.clickCallback = function()
-        if not self.selectionFrame:IsVisible() then
-            self.selectionFrame:Show()
+    self.frame:SetSize(options.sizeX, options.sizeY)
+    self.frame:SetupMenu(function(_, rootDescription)
+        for _, selectionItem in ipairs(self.selectionItems) do
+            rootDescription:CreateCheckbox(selectionItem.name, function()
+                return self.savedVariablesTable[selectionItem.savedVariableProperty]
+            end, function()
+                self.savedVariablesTable[selectionItem.savedVariableProperty] = not self.savedVariablesTable
+                    [selectionItem.savedVariableProperty]
+                self.onSelectCallback(self, selectionItem.name,
+                    self.savedVariablesTable[selectionItem.savedVariableProperty])
+            end)
         end
-    end
-
-    self.button = GGUI.Button(options.buttonOptions)
-
-    options.selectionFrameOptions.parent = options.selectionFrameOptions.parent or options.buttonOptions.parent
-    options.selectionFrameOptions.anchorParent = options.selectionFrameOptions.anchorParent or self.button.frame
-    options.selectionFrameOptions.anchorA = options.selectionFrameOptions.anchorA or "TOPLEFT"
-    options.selectionFrameOptions.anchorB = options.selectionFrameOptions.anchorB or "BOTTOMRIGHT"
-    options.selectionFrameOptions.offsetX = options.selectionFrameOptions.offsetX or 0
-    options.selectionFrameOptions.offsetY = options.selectionFrameOptions.offsetY or 0
-    options.selectionFrameOptions.closeOnClickOutside = true
-    options.selectionFrameOptions.frameConfigTable = options.selectionFrameOptions.frameConfigTable or {}
-    local numFrames = GUTIL:Count(options.selectionFrameOptions.frameTable or {}) + 1
-    options.selectionFrameOptions.frameID = options.selectionFrameOptions.frameID or
-        ("GGUICheckboxSelectorFrame " .. numFrames)
-    options.selectionFrameOptions.frameStrata = options.selectionFrameOptions.frameStrata or "FULLSCREEN"
-    options.selectionFrameOptions.scrollableContent = true
-    options.selectionFrameOptions.title = options.selectionFrameOptions.title or ""
-    options.selectionFrameOptions.sizeX = options.selectionFrameOptions.sizeX or 150
-    options.selectionFrameOptions.sizeY = options.selectionFrameOptions.sizeY or 150
-
-    ---@class GGUI.CheckboxSelector.SelectionFrame : GGUI.Frame
-    self.selectionFrame = GGUI.Frame(options.selectionFrameOptions)
-    self.selectionFrame:Hide()
-
-    self.selectionFrame:SetFrameLevel(options.selectionFrameOptions.parent:GetFrameLevel() + 10)
-
-    ---@type GGUI.Checkbox[]
-    self.selectionFrame.checkboxSlots = {}
-    self.selectionFrame.currentRow = 1
-
-    -- add initial checkboxes to selectionFrame
-    for _, checkboxItem in pairs(options.initialItems or {}) do
-        self:AddSlotCheckbox(checkboxItem)
-    end
-
-    GGUI.CheckboxSelector.super.new(self, self.button)
-end
-
----@param checkboxItem GGUI.CheckboxSelector.CheckboxItem
----@return GGUI.Checkbox
-function GGUI.CheckboxSelector:AddSlotCheckbox(checkboxItem)
-    local baseOffsetY = 0
-    local spacingY = -20
-    local offsetY = baseOffsetY + spacingY * (#self.selectionFrame.checkboxSlots)
-
-    local checkbox = GGUI.Checkbox {
-        parent = self.selectionFrame.content, anchorParent = self.selectionFrame.content, anchorA = "TOPLEFT",
-        anchorB = "TOPLEFT", offsetX = 0, offsetY = offsetY, sizeX = 25, sizeY = 25, label = checkboxItem.name,
-        clickCallback = function(checkbox, checked)
-            if self.savedVariablesTable and checkboxItem.savedVariableProperty then
-                self.savedVariablesTable[checkboxItem.savedVariableProperty] = checked
-            end
-            self.selectedValues[checkboxItem.selectionID] = checked
-            self.onSelectCallback(self, checkboxItem.selectionID, checked)
-        end
-    }
-
-    table.insert(self.selectionFrame.checkboxSlots, checkbox)
-
-    if checkboxItem.initialValue ~= nil then
-        checkbox:SetChecked(checkboxItem.initialValue)
-    elseif self.savedVariablesTable and checkboxItem.savedVariableProperty then
-        checkbox:SetChecked(self.savedVariablesTable[checkboxItem.savedVariableProperty])
-    end
-
-    self.selectedValues[checkboxItem.selectionID] = checkbox:GetChecked()
-
-    return checkbox
+    end)
 end
 
 ---@param checkboxItems? GGUI.CheckboxSelector.CheckboxItem[]
 function GGUI.CheckboxSelector:SetItems(checkboxItems)
-    checkboxItems = checkboxItems or {}
-    local checkboxes = self.selectionFrame.checkboxSlots
-
-    local maxSlots = math.max(#checkboxItems, #checkboxes)
-    for i = 1, maxSlots do
-        local checkbox = checkboxes[i]
-        local checkboxItem = checkboxItems[i]
-        if not checkbox and checkboxItem then
-            checkbox = self:AddSlotCheckbox(checkboxItem)
-            checkbox:Show()
-        elseif checkboxItem then
-            checkbox:SetLabel(checkboxItem.name)
-            checkbox.clickCallback = function(checkbox, checked)
-                if self.savedVariablesTable and checkboxItem.savedVariableProperty then
-                    self.savedVariablesTable[checkboxItem.savedVariableProperty] = checked
-                end
-                self.selectedValues[checkboxItem.selectionID] = checked
-                self.onSelectCallback(self, checkboxItem.selectionID, checked)
-            end
-            checkbox:Show()
-        elseif checkbox then
-            checkbox:Hide()
-            checkbox:SetLabel()
-            checkbox.clickCallback = function() end
-        end
-    end
+    self.selectionItems = checkboxItems or {}
 end
 
 --- GGUI.ClassIcon

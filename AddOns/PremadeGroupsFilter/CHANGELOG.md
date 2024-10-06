@@ -1,15 +1,11 @@
 # Premade Groups Filter
 
-## [6.0.1](https://github.com/0xbs/premade-groups-filter/tree/6.0.1) (2024-08-23)
-[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/5.8.4...6.0.1) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
+## [6.2.0](https://github.com/0xbs/premade-groups-filter/tree/6.2.0) (2024-09-28)
+[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/6.1.0...6.2.0) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
 
-- Fix Cata and Wrath version (fixes #276)  
-- Replace reset button with an icon, add shortcut button to options panel  
-- Update RU locale (#275)  
-- Color new groups more consistently in green  
-- Align appStatus, isApplication, isDeclined with Blizz implementation  
-- Use brighter colors for declined groups; use partyGUID  
-- Larger spec icons; re-enable leader crown and class bars; add option to show missing roles  
-- Micro update RU locale (#274)  
-- Update ruRU.lua (#272)  
-- Add an option to show specialization icons in the dungeon list (see #201)  
+- Enhance settings with little preview images  
+- Add section headers in settings  
+- Change internal name of option  
+- Add option that allows to apply to declined groups  
+- Fix hard declined groups being shown in yellow instead of red  
+- Allow other addons to overwrite the sorting function  

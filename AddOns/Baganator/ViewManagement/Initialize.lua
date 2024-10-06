@@ -8,6 +8,19 @@ local function GetViewType(view)
   end
 end
 
+local function RegisterForScaling(frame)
+  addonTable.Utilities.OnAddonLoaded("BlizzMove", function()
+    BlizzMoveAPI:RegisterAddOnFrames({
+        ['Baganator'] = {
+           [frame:GetName()] = {
+             NonDraggable = true,
+             IgnoreClamping = true,
+           },
+        },
+    });
+  end)
+end
+
 local hidden = CreateFrame("Frame")
 hidden:Hide()
 
@@ -59,6 +72,7 @@ local function SetupBackpackView()
   end
 
   for _, backpackView in pairs(allBackpackViews) do
+    RegisterForScaling(backpackView)
     table.insert(UISpecialFrames, backpackView:GetName())
 
     backpackView:HookScript("OnHide", function()
@@ -72,7 +86,7 @@ local function SetupBackpackView()
 
   local lastToggleTime = 0
   local function ToggleBackpackView()
-    if GetTime() == lastToggleTime then
+    if GetTime() == lastToggleTime or not Syndicator.API.GetCurrentCharacter() then
       return
     end
     backpackView:SetShown(not backpackView:IsShown())
@@ -85,6 +99,9 @@ local function SetupBackpackView()
 
   addonTable.CallbackRegistry:RegisterCallback("BagShow",  function(_, characterName)
     characterName = characterName or Syndicator.API.GetCurrentCharacter()
+    if not characterName then
+      return
+    end
     backpackView:Show()
     backpackView:UpdateForCharacter(characterName, characterName == backpackView.liveCharacter)
     UpdateButtons()
@@ -185,6 +202,7 @@ local function SetupBankView()
   })
 
   for _, bankView in pairs(allBankViews) do
+    RegisterForScaling(bankView)
     table.insert(UISpecialFrames, bankView:GetName())
   end
 
@@ -205,22 +223,38 @@ local function SetupBankView()
     ResetPositions()
   end
 
+  local function GetSelectedBankTab(entity)
+    if type(entity) == "string" or entity == nil then -- Character bank
+      return addonTable.Constants.BankTabType.Character
+    elseif type(entity) == "number" then -- Warband bank
+      return addonTable.Constants.BankTabType.Warband
+    end
+  end
+
   addonTable.CallbackRegistry:RegisterCallback("ResetFramePositions", function()
     ResetPositions()
   end)
 
-  addonTable.CallbackRegistry:RegisterCallback("BankToggle", function(_, characterName)
-    characterName = characterName or Syndicator.API.GetCurrentCharacter()
-    bankView:SetShown(characterName ~= bankView.Character.lastCharacter or not bankView:IsShown())
-    bankView:UpdateViewToCharacter(characterName)
+  addonTable.CallbackRegistry:RegisterCallback("BankToggle", function(_, entity, subView)
+    local selectedTab = GetSelectedBankTab(entity)
+    if selectedTab == addonTable.Constants.BankTabType.Character then -- Character bank
+      local characterName = entity or Syndicator.API.GetCurrentCharacter()
+      bankView:SetShown(characterName ~= bankView.Character.lastCharacter or not bankView:IsShown())
+      bankView:UpdateViewToCharacter(characterName)
+    elseif selectedTab == addonTable.Constants.BankTabType.Warband then -- Warband bank
+      subView = subView or addonTable.Config.Get(addonTable.Config.Options.WARBAND_CURRENT_TAB)
+      bankView:SetShown(not bankView:IsShown())
+      bankView:UpdateViewToWarband(entity, subView)
+    end
   end)
 
   addonTable.CallbackRegistry:RegisterCallback("BankShow", function(_, entity, subView)
-    if type(entity) == "string" or entity == nil then -- Character bank
+    local selectedTab = GetSelectedBankTab(entity)
+    if selectedTab == addonTable.Constants.BankTabType.Character then -- Character bank
       local characterName = entity or Syndicator.API.GetCurrentCharacter()
       bankView:Show()
       bankView:UpdateViewToCharacter(characterName)
-    elseif type(entity) == "number" then -- Warband bank
+    elseif selectedTab == addonTable.Constants.BankTabType.Warband then -- Warband bank
       subView = subView or addonTable.Config.Get(addonTable.Config.Options.WARBAND_CURRENT_TAB)
       bankView:Show()
       bankView:UpdateViewToWarband(entity, subView)
@@ -253,6 +287,7 @@ local function SetupGuildView()
   local guildView = CreateFrame("Frame", "Baganator_SingleViewGuildViewFrame", UIParent, "BaganatorSingleViewGuildViewTemplate")
   guildView:SetClampedToScreen(true)
   guildView:SetUserPlaced(false)
+  RegisterForScaling(guildView)
 
   table.insert(UISpecialFrames, guildView:GetName())
 
@@ -386,8 +421,50 @@ local function SetupCharacterSelect()
     SetPositions()
   end)
 
-  addonTable.CallbackRegistry:RegisterCallback("CharacterSelectToggle", function(_, guildName)
+  addonTable.CallbackRegistry:RegisterCallback("CharacterSelectToggle", function()
     characterSelect:SetShown(not characterSelect:IsShown())
+  end)
+end
+
+local function SetupCurrencyPanel()
+  local currencyPanel = addonTable.ItemViewCommon.GetCurrencyPanel("Baganator_CurrencyPanelFrame")
+
+  table.insert(UISpecialFrames, currencyPanel:GetName())
+
+  local function SetPositions()
+    currencyPanel:ClearAllPoints()
+    local setting = addonTable.Config.Get(addonTable.Config.Options.CURRENCY_PANEL_POSITION)
+    if type(setting[2]) == "string" then
+      setting[2] = nil
+    end
+    local anchor = CopyTable(setting)
+    if setting[2] == nil then -- Accommodate renamed backpack frames
+      anchor[2] = addonTable.ViewManagement.GetBackpackFrame() or UIParent
+      setting[2] = anchor[2]:GetName()
+    end
+    currencyPanel:SetPoint(unpack(anchor))
+  end
+
+  local function ResetPositions()
+    addonTable.Config.ResetOne(addonTable.Config.Options.CURRENCY_PANEL_POSITION)
+    SetPositions()
+  end
+
+  local success = pcall(SetPositions) -- work around broken values
+  if not success then
+    ResetPositions()
+  end
+
+  addonTable.CallbackRegistry:RegisterCallback("ResetFramePositions", function()
+    ResetPositions()
+  end)
+
+  addonTable.CallbackRegistry:RegisterCallback("BackpackFrameChanged", function()
+    SetPositions()
+  end)
+
+  addonTable.CallbackRegistry:RegisterCallback("CurrencyPanelToggle", function()
+    currencyPanel:SetShown(not currencyPanel:IsShown())
   end)
 end
 
@@ -423,4 +500,5 @@ function addonTable.ViewManagement.Initialize()
   end, CallErrorHandler)
 
   SetupCharacterSelect()
+  SetupCurrencyPanel()
 end

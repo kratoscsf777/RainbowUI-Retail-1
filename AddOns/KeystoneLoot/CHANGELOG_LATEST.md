@@ -1,2 +1,3 @@
-## Other Changes
-- Raid update for TWW Season 1 (M+ dungeons coming later)
+## Bugfixes
+- Favorite Catalyst items will appear again.
+- Tooltip for Veteran, Champion and Heroic items has been fixed

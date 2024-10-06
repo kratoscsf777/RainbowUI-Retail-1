@@ -15,6 +15,7 @@ local gsub = string.gsub
 local ipairs = ipairs
 local pairs = pairs
 local strfind = string.find
+local strlower = string.lower
 local strsub = string.sub
 
 -- WoW API
@@ -22,7 +23,6 @@ local _G = _G
 
 local db, dbChar
 local remixID = 15509  -- Remix: Pandaria
-local mediaPath = "Interface\\AddOns\\"..addonName.."\\Media\\"
 local OBJECTIVES_WATCH_TOO_MANY = OBJECTIVES_WATCH_TOO_MANY..".. max. %d"
 
 local KTF = KT.frame
@@ -266,6 +266,11 @@ local function GetActiveWorldEvents()
 	return eventsText
 end
 
+local function FilterSkipMap(mapID)
+	return not mapID or    -- Same as 947
+			mapID == 2274  -- 10 - The War Within - Khaz Algar (continent)
+end
+
 local function IsInstanceQuest(questID)
 	local _, _, difficulty, _ = GetInstanceInfo()
 	local difficultyTags = instanceQuestDifficulty[difficulty]
@@ -288,7 +293,7 @@ end
 local function Filter_Quests(spec, idx)
 	if not spec then return end
 	local numEntries, _ = C_QuestLog.GetNumQuestLogEntries()
-	local superTrackedQuestID = C_SuperTrack.GetSuperTrackedQuestID() or 0
+	local lastSuperTrackedQuestID = C_SuperTrack.GetSuperTrackedQuestID() or 0
 
 	KT.stopUpdate = true
 	if not IsModifiedClick("SHIFT") and C_QuestLog.GetNumQuestWatches() > 0 then
@@ -331,29 +336,32 @@ local function Filter_Quests(spec, idx)
 	elseif spec == "zone" then
 		local mapID = KT.GetCurrentMapAreaID()
 		local zoneName = GetRealZoneText() or ""
-		local zoneNamePattern = gsub(zoneName, "-", "%%-")
+		local zoneNamePattern = strlower(gsub(zoneName, "-", "%%-"))
 		local isOnMap = false
 		local isInZone = false
 		for i = 1, numEntries do
 			local questInfo = C_QuestLog.GetInfo(i)
 			if not questInfo.isHidden then
-				if mapID == 2274 then  -- TWW - Khaz Algar (continent)
+				if FilterSkipMap(mapID) then
 					questInfo.isOnMap = false
 				end
 				if questInfo.isHeader then
-					isInZone = (questInfo.isOnMap or questInfo.title == zoneName or (dbChar.filter.quests.showCampaign and questInfo.campaignID))
-					if mapID == 1473 then  -- BfA - Chamber of Heart
+					isInZone = (questInfo.title == zoneName or
+							(dbChar.filter.quests.showCampaign and questInfo.campaignID))
+					if mapID == 1473 then  -- 7 - Battle for Azeroth - Chamber of Heart
 						isInZone = (isInZone or
 								questInfo.title == "Heart of Azeroth" or  -- TODO: other languages
 								questInfo.title == "Visions of N'Zoth")   -- TODO: other languages
 					end
 				else
+					local _, objectives = GetQuestLogQuestText(i)
+					local qText = strlower(questInfo.title.." - "..objectives)
 					isOnMap = (questInfo.isOnMap or
 							KT.QuestsCache_GetProperty(questInfo.questID, "startMapID") == mapID or
-							strfind(questInfo.title, zoneNamePattern))
+							strfind(qText, zoneNamePattern))
 					if not questInfo.isTask and (not questInfo.isBounty or C_QuestLog.IsComplete(questInfo.questID)) and (KT.QuestsCache_GetProperty(questInfo.questID, "isCalling") or isOnMap or isInZone) then
 						if KT.inInstance then
-							if IsInstanceQuest(questInfo.questID) or isInZone then
+							if IsInstanceQuest(questInfo.questID) or isOnMap then
 								C_QuestLog.AddQuestWatch(questInfo.questID)
 							end
 						else
@@ -417,7 +425,11 @@ local function Filter_Quests(spec, idx)
 	C_QuestLog.SortQuestWatches()
 	KT_CampaignQuestObjectiveTracker:MarkDirty()
 	KT_QuestObjectiveTracker:MarkDirty()
-	C_SuperTrack.SetSuperTrackedQuestID(superTrackedQuestID)
+	if lastSuperTrackedQuestID > 0 and QuestUtils_IsQuestWatched(lastSuperTrackedQuestID) then
+		C_SuperTrack.SetSuperTrackedQuestID(lastSuperTrackedQuestID)
+	elseif db.questAutoFocusClosest and not C_SuperTrack.IsSuperTrackingAnything() then
+		KT.QuestSuperTracking_ChooseClosestQuest()
+	end
 end
 
 local function GetCategoryByZone()
@@ -428,7 +440,7 @@ local function GetCategoryByZone()
 	-- 5 - Draenor
 	-- 9 - Dragon Isles
 	local continent = KT.GetCurrentMapContinent()
-	local category = continent.name
+	local category = continent.name or ""
 	local categoryAlt = ""
 	local mapID = KT.GetCurrentMapAreaID()
 	-- 10 - The War Within
@@ -484,7 +496,7 @@ local function Filter_Achievements(spec)
 			end
 		end
 	elseif spec == "zone" then
-		local continentName = KT.GetCurrentMapContinent().name
+		local continentName = KT.GetCurrentMapContinent().name or ""
 		local mapID = KT.GetCurrentMapAreaID()
 		local zoneName = zoneSlug[mapID] or KT.GetMapNameByID(mapID) or ""
 		local zoneNamePattern = gsub(zoneName, "-", "%%-")
@@ -493,7 +505,7 @@ local function Filter_Achievements(spec)
 		if KT.isTimerunningPlayer and instance then
 			instance = remixID
 		end
-		_DBG(continentName.." / "..zoneName.." ... "..mapID.." ... "..categoryName.." / "..categoryNameAlt, true)
+		--_DBG(continentName.." / "..zoneName.." ... "..mapID.." ... "..categoryName.." / "..categoryNameAlt, true)
 
 		-- Dungeons & Raids
 		local instanceDifficulty, instanceSize
@@ -723,6 +735,9 @@ end
 
 local function Filter_Menu_Quests(self, spec, idx)
 	Filter_Quests(spec, idx)
+	if db.questAutoFocusClosest and not C_SuperTrack.GetSuperTrackedQuestID() then
+		KT.QuestSuperTracking_ChooseClosestQuest()
+	end
 end
 
 local function Filter_Menu_Achievements(self, spec)
@@ -734,6 +749,9 @@ local function Filter_Menu_AutoTrack(self, id, spec)
 	if db.filterAuto[id] then
 		if id == 1 then
 			Filter_Quests(spec)
+			if db.questAutoFocusClosest and not C_SuperTrack.GetSuperTrackedQuestID() then
+				KT.QuestSuperTracking_ChooseClosestQuest()
+			end
 		elseif id == 2 then
 			Filter_Achievements(spec)
 		end
@@ -1113,7 +1131,7 @@ local function SetFrames()
 	local button = CreateFrame("Button", addonName.."FilterButton", KTF.HeaderButtons)
 	button:SetSize(16, 16)
 	button:SetPoint("TOPRIGHT", KTF.MinimizeButton, "TOPLEFT", -4, 0)
-	button:SetNormalTexture(mediaPath.."UI-KT-HeaderButtons")
+	button:SetNormalTexture(KT.MEDIA_PATH.."UI-KT-HeaderButtons")
 	button:GetNormalTexture():SetTexCoord(0.5, 1, 0.5, 0.75)
 	button:RegisterForClicks("AnyDown")
 	button:SetScript("OnClick", function(self, btn)

@@ -1,23 +1,6 @@
 local _, addonTable = ...
-local MasqueRegistration = function() end
 
-if LibStub then
-  -- Establish a reference to Masque.
-  local Masque, MSQ_Version = LibStub("Masque", true)
-  if Masque ~= nil then
-    -- Retrieve a reference to a new or existing group.
-    local masqueGroup = Masque:Group(BAGANATOR_L_BAGANATOR_NAME, BAGANATOR_L_CATEGORY_BAG)
-
-    MasqueRegistration = function(button)
-      if button.masqueApplied then
-        masqueGroup:ReSkin(button)
-      else
-        button.masqueApplied = true
-        masqueGroup:AddButton(button, nil, "Item")
-      end
-    end
-  end
-end
+local MasqueRegistration = addonTable.Utilities.MasqueRegistration
 
 local function GetNameFromLink(itemLink)
   return (string.match(itemLink, "h%[(.*)%]|h"):gsub(" ?|A.-|a", ""))
@@ -957,10 +940,8 @@ function BaganatorLiveCategoryLayoutMixin:ShowGroup(cacheList, rowWidth, categor
     table.insert(self.buttons, newButton)
   end
 
-  if #toSet > 0 or self.anyRemoved or self.reflow or rowWidth ~= self.prevRowWidth then
-    self.reflow = false
-    self.anyRemoved = false
-    FlowButtonsRows(self, rowWidth)
+  if #toSet > 0 then
+    self.toSet = true
     for _, details in ipairs(toSet) do
       details[1]:SetItemDetails(details[2])
       details[1].addedDirectly = details[2].addedDirectly
@@ -994,6 +975,16 @@ function BaganatorLiveCategoryLayoutMixin:ShowGroup(cacheList, rowWidth, categor
     local key = addonTable.ItemViewCommon.Utilities.GetCategoryDataKey(cacheData)
     self.buttonsByKey[key] = self.buttonsByKey[key] or {}
     table.insert(self.buttonsByKey[key], button)
+  end
+end
+
+function BaganatorLiveCategoryLayoutMixin:Flow(rowWidth)
+  if self.reflow or self.toSet or self.anyRemoved or rowWidth ~= self.prevRowWidth then
+    self.toSet = false
+    self.reflow = false
+    self.anyRemoved = false
+    FlowButtonsRows(self, rowWidth)
+    self.prevRowWidth = rowWidth
   end
 end
 
@@ -1034,6 +1025,10 @@ function BaganatorCachedCategoryLayoutMixin:InformSettingChanged(setting)
   end
 end
 
+function BaganatorCachedCategoryLayoutMixin:Flow(width)
+  FlowButtonsRows(self, width)
+end
+
 function BaganatorCachedCategoryLayoutMixin:RequestContentRefresh()
   self.refreshContent = true
 end
@@ -1055,8 +1050,6 @@ function BaganatorCachedCategoryLayoutMixin:ShowGroup(cacheList, rowWidth)
   end
 
   self.updateTextures = false
-
-  FlowButtonsRows(self, rowWidth)
 
   for index, button in ipairs(self.buttons) do
     button:Show()
@@ -1186,7 +1179,6 @@ function BaganatorLiveGuildLayoutMixin:OnLoad()
   self.buttons = {}
   self.prevState = {}
   self.SearchMonitor = CreateFrame("Frame", nil, self, "BaganatorGuildSearchLayoutMonitorTemplate")
-  self.layoutType = "live"
 
   self:RegisterEvent("GUILDBANK_ITEM_LOCK_CHANGED")
 end
@@ -1195,6 +1187,134 @@ function BaganatorLiveGuildLayoutMixin:OnEvent(eventName, ...)
   if eventName == "GUILDBANK_ITEM_LOCK_CHANGED" and self.prevState and self.prevState.guild ~= nil and self.prevState.guild ~= "" then
     self.refreshContent = true
     self:ShowGuild(self.prevState.guild, self.prevState.tabIndex, self.oldRowWidth)
+    self.SearchMonitor:StartSearch(self.SearchMonitor.text)
+  end
+end
+
+BaganatorUnifiedGuildLayoutMixin = {}
+
+function BaganatorUnifiedGuildLayoutMixin:OnLoad()
+  self.buttonPool = addonTable.ItemViewCommon.GetCachedItemButtonPool(self)
+  self.buttons = {}
+  self.prevState = {}
+  self.SearchMonitor = CreateFrame("Frame", nil, self, "BaganatorGuildSearchLayoutMonitorTemplate")
+  self.layoutType = "cached"
+end
+
+function BaganatorUnifiedGuildLayoutMixin:ApplySearch(text)
+  self.SearchMonitor:StartSearch(text)
+end
+
+function BaganatorUnifiedGuildLayoutMixin:OnShow()
+  RegisterHighlightSimilarItems(self)
+end
+
+function BaganatorUnifiedGuildLayoutMixin:OnHide()
+  addonTable.CallbackRegistry:UnregisterCallback("HighlightSimilarItems", self)
+  addonTable.CallbackRegistry:UnregisterCallback("HighlightIdenticalItems", self)
+end
+
+function BaganatorUnifiedGuildLayoutMixin:InformSettingChanged(setting)
+  if tIndexOf(ReflowSettings, setting) ~= nil then
+    self.reflow = true
+  end
+  if tIndexOf(UpdateTextureSettings, setting) ~= nil then
+    self.updateTextures = true
+  end
+  if tIndexOf(RefreshContentSettings, setting) ~= nil then
+    self.refreshContent = true
+  end
+end
+
+function BaganatorUnifiedGuildLayoutMixin:RequestContentRefresh()
+  self.refreshContent = true
+end
+
+function BaganatorUnifiedGuildLayoutMixin:RebuildLayout(tabCount, rowWidth)
+  self.buttons = {}
+  self.buttonPool:ReleaseAll()
+
+  for tabIndex = 1, tabCount do
+    for index = 1, Syndicator.Constants.MaxGuildBankTabItemSlots  do
+      local button = self.buttonPool:Acquire()
+      addonTable.Skins.AddFrame("ItemButton", button)
+      if not button.texturesSetup then
+        button.texturesSetup = true
+        MasqueRegistration(button)
+        button:UpdateTextures()
+      end
+      button:Show()
+      button:SetID(index)
+      table.insert(self.buttons, button)
+    end
+  end
+
+  FlowButtonsRows(self, rowWidth)
+end
+
+function BaganatorUnifiedGuildLayoutMixin:ShowGuild(guild, rowWidth)
+  local start = debugprofilestop()
+
+  local guildData = Syndicator.API.GetGuild(guild)
+
+  if #self.buttons ~= Syndicator.Constants.MaxGuildBankTabItemSlots * #guildData.bank then
+    self.refreshContent = true
+    self:RebuildLayout(#guildData.bank, rowWidth)
+  elseif self.reflow or rowWidth ~= self.oldRowWidth then
+    self.reflow = false
+    FlowButtonsRows(self, rowWidth)
+  end
+
+  if self.updateTextures then
+    UpdateTextures(self)
+    self.updateTextures = false
+  end
+
+  if not guildData then
+    return
+  end
+
+  if self.prevState.guild ~= guild then
+    self.refreshContent = true
+  end
+
+  if self.refreshContent then
+    self.refreshContent = false
+
+    local index = 1
+    for tabIndex, tabData in ipairs(guildData.bank) do
+      for _, cacheData in ipairs(tabData.slots) do
+        local button = self.buttons[index]
+        button:SetItemDetails(cacheData, tabIndex)
+        index = index + 1
+      end
+    end
+  end
+
+  if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
+    addonTable.Utilities.DebugOutput(self.layoutType .. " guild layout " .. 0 .. " took", debugprofilestop() - start)
+  end
+
+  self.prevState = {
+    guild = guild,
+  }
+end
+
+BaganatorLiveUnifiedGuildLayoutMixin = CreateFromMixins(BaganatorUnifiedGuildLayoutMixin)
+
+function BaganatorLiveUnifiedGuildLayoutMixin:OnLoad()
+  self.buttonPool = addonTable.ItemViewCommon.GetLiveGuildItemButtonPool(self)
+  self.buttons = {}
+  self.prevState = {}
+  self.SearchMonitor = CreateFrame("Frame", nil, self, "BaganatorGuildSearchLayoutMonitorTemplate")
+
+  self:RegisterEvent("GUILDBANK_ITEM_LOCK_CHANGED")
+end
+
+function BaganatorLiveUnifiedGuildLayoutMixin:OnEvent(eventName, ...)
+  if eventName == "GUILDBANK_ITEM_LOCK_CHANGED" and self.prevState and self.prevState.guild ~= nil and self.prevState.guild ~= "" then
+    self.refreshContent = true
+    self:ShowGuild(self.prevState.guild, self.oldRowWidth)
     self.SearchMonitor:StartSearch(self.SearchMonitor.text)
   end
 end

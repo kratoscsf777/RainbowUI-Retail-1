@@ -565,6 +565,7 @@ local achievements = {
 		-- The rest have IDs associated, and are picked up fine
 		[216549] = 7, -- Nightclaw
 		[215590] = 8, -- Shadowpouncer
+		[215593] = 9, -- Purrlock
 		[215606] = 9, -- Purrlock
 		[215041] = 10, -- Miral Murder-Mittens
 		[219412] = 11, -- Fuzzy
@@ -621,7 +622,7 @@ do
 		return false
 	end
 	local function doTest(test, input, ...)
-		if type(input) == "table" and not input.__parent then
+		if ns.xtype(input) == "table" then
 			if input.alliance then
 				return doTest(test, faction == "Alliance" and input.alliance or input.horde, ...)
 			end

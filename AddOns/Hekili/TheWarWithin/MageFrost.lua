@@ -286,6 +286,11 @@ spec:RegisterAuras( {
         type = "Magic",
         max_stack = 1
     },
+    embedded_frost_splinter = {
+        id = 443740,
+        duration = 18,
+        max_stack = 8
+    },
     fingers_of_frost = {
         id = 44544,
         duration = 15,
@@ -864,8 +869,8 @@ end, state )
 
 
 spec:RegisterHook( "reset_precast", function ()
-    if pet.rune_of_power.up then applyBuff( "rune_of_power", pet.rune_of_power.remains )
-    else removeBuff( "rune_of_power" ) end
+    --[[ if pet.rune_of_power.up then applyBuff( "rune_of_power", pet.rune_of_power.remains )
+    else removeBuff( "rune_of_power" ) end --]]
 
     frost_info.last_target_virtual = frost_info.last_target_actual
     -- frost_info.virtual_brain_freeze = frost_info.real_brain_freeze
@@ -1118,6 +1123,8 @@ spec:RegisterAbilities( {
         handler = function ()
             addStack( "icicles" )
 
+            if action.frostbolt.cast_time > 0 then removeStack( "ice_floes" ) end
+
             if buff.frostfire_empowerment.up then
                 applyBuff( "frost_mastery", nil, 6 )
                 if talent.excess_frost.enabled then applyBuff( "excess_frost" ) end
@@ -1134,7 +1141,6 @@ spec:RegisterAbilities( {
                 addStack( "deaths_chill", buff.icy_veins.remains, 1 )
             end
 
-            removeBuff( "ice_floes" )
 
             if buff.cold_front_ready.up then
                 spec.abilities.frozen_orb.handler()
@@ -1164,9 +1170,11 @@ spec:RegisterAbilities( {
 
         impact = function ()
             applyDebuff( "target", "chilled" )
-            --[[ if debuff.winters_chill.stack > 0 and action.frostbolt.lastCast > action.flurry.lastCast then
-                removeDebuffStack( "target", "winters_chill" )
-            end ]]
+            removeDebuffStack( "target", "winters_chill" )
+
+            if talent.frostfire_bolt.enabled then
+                applyDebuff( "target", "frostfire_bolt" )
+            end
         end,
 
         copy = { 116, 228597, "frostfire_bolt", 431044 }
@@ -1296,7 +1304,7 @@ spec:RegisterAbilities( {
             return true
         end,
 
-        start = function ()
+        handler = function ()
             applyDebuff( "target", "chilled" )
 
             if buff.excess_frost.up then
@@ -1306,7 +1314,10 @@ spec:RegisterAbilities( {
 
             if buff.fingers_of_frost.up or debuff.frozen.up then
                 if talent.chain_reaction.enabled then addStack( "chain_reaction" ) end
-                if talent.thermal_void.enabled and buff.icy_veins.up then buff.icy_veins.expires = buff.icy_veins.expires + 0.5 end
+                if talent.thermal_void.enabled and buff.icy_veins.up then
+                    buff.icy_veins.expires = buff.icy_veins.expires + 0.5
+                    pet.water_elemental.expires = buff.icy_veins.expires
+                end
             end
 
             if not talent.glacial_spike.enabled then removeStack( "icicles" ) end
@@ -1315,10 +1326,16 @@ spec:RegisterAbilities( {
             if azerite.whiteout.enabled then
                 cooldown.frozen_orb.expires = max( 0, cooldown.frozen_orb.expires - 0.5 )
             end
+
+            if buff.fingers_of_frost.up then
+                removeStack( "fingers_of_frost" )
+                if talent.cryopathy.enabled then addStack( "cryopathy" ) end
+                if set_bonus.tier29_4pc > 0 then applyBuff( "touch_of_ice" ) end
+            end
         end,
 
         impact = function ()
-            if ( buff.fingers_of_frost.up or debuff.frozen.up ) and talent.hailstones.rank == 2 then
+            if ( buff.fingers_of_frost.up or debuff.frozen.up ) and talent.hailstones.enabled then
                 addStack( "icicles" )
                 if talent.glacial_spike.enabled and buff.icicles.stack == buff.icicles.max_stack then
                     applyBuff( "glacial_spike_usable" )
@@ -1326,12 +1343,6 @@ spec:RegisterAbilities( {
             end
 
             removeDebuffStack( "target", "winters_chill" )
-
-            if buff.fingers_of_frost.up then
-                removeStack( "fingers_of_frost" )
-                if talent.cryopathy.enabled then addStack( "cryopathy" ) end
-                if set_bonus.tier29_4pc > 0 then applyBuff( "touch_of_ice" ) end
-            end
         end,
 
         copy = 228598
@@ -1394,18 +1405,18 @@ spec:RegisterAbilities( {
 
             if talent.bone_chilling.enabled then addStack( "bone_chilling" ) end
             if talent.cryopathy.enabled then addStack( "cryopathy", nil, 10 ) end
-            if talent.rune_of_power.enabled then applyBuff( "rune_of_power" ) end
+           -- if talent.rune_of_power.enabled then applyBuff( "rune_of_power" ) end
 
             if pvptalent.ice_form.enabled then applyBuff( "ice_form" )
             else
                 if buff.icy_veins.down then stat.haste = stat.haste + 0.30 end
                 applyBuff( "icy_veins" )
 
-                if talent.snap_freeze.enabled then
+               --[[ if talent.snap_freeze.enabled then
                     if talent.flurry.enabled then gainCharges( "flurry", 1 ) end
                     addStack( "brain_freeze" )
                     addStack( "fingers_of_frost" )
-                end
+                end --]]
             end
 
             if azerite.frigid_grasp.enabled then
@@ -1531,7 +1542,9 @@ spec:RegisterAbilities( {
         end,
     },
 
-    splinterstorm = {}, -- TODO: Support action.splinterstorm.in_flight
+    splinterstorm = {
+
+    }, -- TODO: Support action.splinterstorm.in_flight
 
     --[[ Summons a Water Elemental to follow and fight for you.
     water_elemental = {
@@ -1675,4 +1688,4 @@ end ) ]]
 } ) ]]
 
 
-spec:RegisterPack( "Frost Mage", 20240822, [[Hekili:TZ16pkUrs8)wqrYlOKWcEEhndF4I0jLv3LVqKUVHXyAg8TgBIB7zxwH4V90p8J(rvTnmZCj6u(YQzPBxDvvxp(vLlyX0f)2I5Rdlil(v)j(xp5EF)XtVF6D(3UyEXH9KfZ3hg95WNz)rA4o2)(pZZOfNw(VfF0(WdjzHR50GMvMhX(OTff7P)0h)4ZXfBlxnokB3hPX7ktclIZsJYd3uW))rFCX8vLXjf)s6IvGmW0RxmpSSyBw(I5ZJ39ZmkhVEnrUDcnAXC(2)Xj3)J(()0PL8TCA5(84S84IdNwwUNtZtF60NKB7UF0)b22(TTKtl)pH5S)HXFXPlMNetlOcbGgqly)XVkujK0WvjK1l(hlMhXOijpoK9xzzjRZ(sAqojmIPe8oTmNSlmono95GVeNY2gniABCsYPLpDA5eXowtwvUzZyTLhZPIy1HCMM8sWZrRhpD8gUYDvwcJ2hpQTYZjHrXHjb09XFMjcJykNiUgDX8njL55hwuW0FOmUGdIJoe8cjoLoUCpoNrly33c23V9mIJibjHPS7x2XCvFpMgHu85BYjKVvPOwRSOln40wwip8qq2MaHgIZfxZ5IgDqE23iPbz5Ru5m2UUrDx0TXBk4h0(SVqYn25TOsfkdYVIKIgBr(NxZFmfmIU7o0tr1kqCJAzceLLs4hreZiuUO8igt3NizSIS8DJJtd2Ke)82IwwG5eskcelZzI776cmokHqvSeUPLuA2HCI9W54TyzhczgpDIXvR0LW4(AQPBAJWgMKei)pbCNBPlEGm61USxi7iPClOcECKnHLjTo9T6RsH(CpjjX4yn9X61PgTM62XH)GVqciPKDXe6PLZyk97eASbNwsz3DRYslPJlIj5xnjWFFu79V5JDT4Xkctys5yUThNZi5JRp350I84iUcuX3QmfL3dZinUB9M39fmH5kpYw5QZMby2IHVqACMb5HkXv3r4sLyzIaGqc96HRmTAm0CMqPExJxZOapgbt9XI6nP9SwXKOp3RG7eMBFgrgyvp6J4ZBmavxjn7LqddC8l6IW8NjfS0f8eNtNuBEwP75rLim1annCFTQh0kyMEQf1OAUVK3fMgoEppscthD1K(q8W8Oqg5jFDFsgL)j13QnrxIZjbRscPMHxUZuvjdHRTPcruBwW1vH2XqQoAU9iZ)lYK((Q7DxCEEwEq8obOkT9DEXm8D78BCLTjNrJYCY6QSwn7cl2YvA2LF7BH5RpVydpQF90gBxOm5HAC6U0LP2qJ8Lnz9SYL2cyWYmU5HAj9iCZvC3YbUWVXzh2geyI4p7ciOmoV(VqY3V7ny8IdRsGVMewS1aV4JNw(GcIiOT8KylsTTKDAX72IAHPTHGkibHrf((3RALRDsnH8HSWCeAXPYuk5DfPJl61iE0GQXy9W1heKPz92lznbZ)g30rzNtmSk1a4HJLTXIqTaaj3OvtsR0QPm0f3(vEc)e7a7RoxvFzKTzJG6ska4GJFOn52CI29T5yLpkArcJmmgB4RUboRfms92xfGGrrnn4NDszfi5dqQdS58A9fnllqdQjIDIhACUw8(4b8XQhr3BQoMMMoIFxTl8RThOvLltXJDpuHLBIM6wqhPXtNPcUoY6Q8qEGqHLNiQB1rJvLjsJaM2rj6GuIFu6beuvNf5mq4jbfX7Quiig8qGM4Cu)Xi0wetFJdnq72cjmWuxvp8MbS9oCKctXJk3bLwNh(CwknyvopxNGw4Xs7lk57CJsE69AWKXkc3miwJW3)IW5fhdG6Rj(2(d7yWZ5gyFHSYWj1biHPsSgB4ykcAw4rEWZjcVvbwLmkfzB(3u3Xtdoaa0xlVMfNiCRsjjfBdZlPw(Ea7jqs(dnUHOBClFJ1WXKrmsYYwNuY8HLPVD(4VWKbtWCTeOkCsTqBlkoXJQL7S5kPt18TkPY2Nvuz9zgTO1tGeUBvC6AsEaJV3X5VITKGN5EgbrhI4zy0Sqi)Ez8(9K1JtpSRKqdktfbY4XTyrssxxL8xj9UJnwz1yifZe10ivB9HbbqI2GoNKKLNZ(hQ4POLPYc40IwjcbpRolOo01QCavCdk5CIruEaS7MjJNcg(WSkUM8ogfnxzdyeZqlWsjLvICbzN5MEqDtct0GnLCbtp8JwNcxXSUj5FMDJzUnTcZfvzqd(VLRFweeYyVAfMZBpG40n3LwNu4j5OSeKjIYT13AHOLqoRQ9868lkOFC0mVpV2IH9)Lxiwr2QfXYJqrvk6YG85FdiUfCQrDv4cF1ob06eoSB0AkbOjFLz1qvw0R5fLulqKDcq9Ioec3RC84XDkfUVGDkJN5l9ah73f(UFWHY5SGHHT9DqOahB6y4axRgUsRsjWdMcRQABAIVnsxvPfP)cABPjrKEPMkDrchTyxyC7rPO67dPZgvBR7WoqqvVchunEX9qeQpThTP3OvVTsEieZMm2Exv)gh47u0Kg1D2NR0kpE1dRgfiOQq7wwTzE4TtWgNCluXbo7JMzvTDC7oSZgPA0ClCtQrVHUfTKuBZaLnW9hV0wRGf5XruJUA8bykeliFazWoZAZXroazcETozAQV(QEvWigY(ZPGr5le8pdmvgjGDJX6DgJuVWYm0jjqoGhB6W2wENr4yuKcEOmsTV4WzXHe1ZeiBFcLFDaGiX2K7pDqkqSnMDPg0J(JCb6i(Bul)nQLUqT0to6))Z0IdN5ss0AM22zqP3PCVqHeCGa4Cs963RuVyrM7FQx2s8wiYFQQH1CctT)LWCU8sxmxmDLXSIwZzHL2KLFA5hQF(pW1m)Ejl)gZuIMX7Wuyzr2UWc(hWs0Wu30XN(0)koLT01)0PL)Cwk7Wel)bahEgblYGxQ2MLTLHt)6OX8PafG1QM(RZJZUcMZAlMWGVSRYOLRKu8gykQnltgefCoN6qABMuL)SLxekAmmkgKfzuv6qMdZiNN0o9n2URdQ2ev2IOwr0nPjIhIAvCgefQaVEAl(kL)BHPQwWtdYcIi0sVo59IW(Vxeg5A71t436Boq)j6zg849snIec5vtxedvvWogKfcQKjvV7n(Qrs17FZdmJqrTMtzfwgOlz9KUMTo7dW54m7SwpP(R8o7H3LWRiu9vLiaHMxS8d64lB5Y558)3oPOgNVQl83Ad(tF6xe31CIDFDVgoTu89IITmFuairl(1BVM3vTSnXTdXfDCdOYV)PpAoWZN(e0Uuh1z4Du3u7FiEZt6fbn7jFpROzEdAIfPbr84rZh(k4ZRPEj7d8XN856NQNITx1VyiAFUrju)aV4PNIwtv3KXxBa5Eyqu)b53pHNMcjX35na67)HT0DTTQPZdx6w78899mvjx1jzfFbk0OQrmD5mz3jzkuu(JzkkXfqBNuuiSQVO3q4za)4rW5)UX(rzRJmp22TZp0byDa44XbTdIMbjunRVicOzNA8cDkzsT4JSN76hF44rKLE6bVbYZaAqSh5zCivnVz29EaP8SVOA0MoLyVHdaUdpE0XOu75OjzZ8Vb)zR2XeGRx(ecW5ZgTVN9Sr3YQg3zyYM15u30g9tAaWyhRze7MOIRUxnz9gG04kRZtVxD8Z0vFgNnDIfdlAJT6dk7KT3axZjRNDF)AJ5zikO(qA7tXpsLO34HoyXZQgQyCjAyZrZCLHyUrENLql9QnMJfgPX6rjOjNOdNnslWtD8i4G)otzOFpEeRl4oSXTZrH5c1ELzjb2H81MwxpO4hEwPrnPQ(m1cM518rmhtw(dvpTTZUAs3Nztqwlree(qDRt5zb)UVRgzgDmdwb7zQNCo5EzW1j5ByOUccPrK01SB8dbusE5oGSfnUM8udzuQN2an(O)nT8h0zPppScRE0dWG0tNmz0fEMwJJAJG5EIARY(5AAALHw0NKwhpw1u0w7BQm)SJmfc5eTY5u4XJfuxC7e36IEmJPIlLUh9vV(m2RSlmn(BMVB2dBOtf(USijZUXBG9RN3GKTru5pYJtgp1chQfB0o0Xi8hfYpko9LSpZ9Qz2lPSas8lvPGiYVXQNztzT3U4cx)JLVm6ZIUSGCukxbZU3OL72jvnvgtMlvrFDA3oqSwRqQNbwZvmg7vlfE9KUAUG(WTQIixw9GnwpRlxnesA)kgytRQlETxwMSgcJ8MdhoeAUkmr5RmtfJaGqWQkCeoaUJhhc(iae6rgSbRPL4j)rJaKX2CYaIjiIg0XGagve6BW0Mxu7nae7GK1)PPa0QFORgkFo4PzafMbKEuVQmyHwE543c8qvGvkva6fAdDM9Pa0oWd7S(f2YyQCBegxbWGoGNdFCdbkawRgkizy0fPq5pOYwSam8O)Kl1S6CDZWCr8CuBENiG1oAuqWWwYMidBT46eCy9Ju)zIO2hce)0riaPA(RmHwrzkpvZpwekAz1FwjqFiUScU4Bc4DFyr8mHJdtL2FaiqfoHnKQEw0FRV3rHS4EW4bY7oBgwBaQzh7s90Aqe(V2tQQMAIPLxWMET5Ea(zDcv(NcOdB)HyWAn9qzDiWiNzfoENjdRP3fJJr2nw8FjMSpQZmMwNwCwx3GAAZymncEVdX860tg05T1)5Tcpid03LriJU04exjikpqSC4T6PY0247ruTxzg43HiJBanpO)3G8em6sFcy0B3MxpctJitV7OlPWPk)RbYs6L8s5AENCkZhqRwY8D77bR(0ZVu9DJb496zQjTHaB2GkzhEga8Emg1Lo8VQWL7V)HRyaVlWIPf9hsmAQQUZtjgq1f)X]] )
+spec:RegisterPack( "Frost Mage", 20240924, [[Hekili:TZvwVTros4FlcdqpsysuKAB5Jbw(HDawGjy35fpa7BQvRwu29M(qBZUDIde0V9TizFWJI9HKDqMDdMbXjIKvvSo)yrkVA(Q)C1dB9ZjR(d3zUxo7w3lNo)25x5E9QhYFzpz1d79d(K)JWFjXpg(Z)Ewkn)46)j)J27)suQ)wgnOPfzbWh9uE(E6V(Hp8yy(tfBMgKg)bAyCrKFEyAsqM)UC2)o4dREytryu(VNSAdMaSW9Qvp4xK)uA2QhEim(3akhUDlrmDcny1dSP)(z3(E3l)1JR)T0yciwpKNMfF8Jh)y1GZM)UJRz)8gXpDDHjZO3X1f7zSTzY3ip4(SW0SW8xmN21V39wyA)5tKJR)x(zWFa70WKvpefsZPmvrqeX)zc83(dU2LK4VjISD1Fdgbijjl0h0CzKN9Emy705t3fvKLbm6WbgBR)4G0eIx6oVG0OTGQiGP)akW2NEu22CvoOYSYGGuyDPFoXlJaR94ANJRhx9)YmNzo3KgLBWF(i7cZiEIHNWPXMID7Mggec7r6uAo4BCC99lpU(c(e0iXJr(bH(rE09HFIigDCRKWcdU746f8bdEYp7rc1BxMqF4hDCnSsxoZN0OLeQuqj8cqgVC2Iatdyoav2fwvz5(rKKCvPEA5m5SFlHlDFombwb1l4PWOOPmLSvjheUlBgCxyYJSfcwvU2DAX(gzomG4f5NWIHWe7lTk2zKy)WeG0EkcgN5ZBOFM)l1mgNflSYclBTfvUvcEu6jpv31Jz3TkKswnffptGUQDbYqD24U4wjzJoUU0SkV)BSQmzRsEvNIqIPQ(vzPFLK4LMTHjEx3LNel0LqHW1e)9kos1CukCUHH3d2TzQZRHXytRnpaXmyBGNjEKesCiHwgVjNvrkxdSZUPZ0kDirkAE5njUIVn1WKxrtzdjvMCyWlEptGz0mtMp0Sgfe9PWD5mf8(0ptYyQOBhCWslo6ZNnqp9I9CTYOUs3AXZO3zDMBVcgMl1LQeoj9zFov4LPKcIeLCKjmBw6zMR9o9JI8e)dpwrwrPwpbEK40NjXGtXk2)9am43DLD7o6S96kVXLTlRkFUeFtgSjbVtc5ReU7zVGd0zj3wlQoYED1A(ZNa5lbekvn2rSY6nejMhAZCLuklxcL4VeahE1Hj8dqb)auqpafGriHYUCpZCrzzXjzk74Yr5jnycklfIYeuSv09r8ncBMmzszM9XKwgXlZmwUa2qOQcfR8MOWV(v)STTx7V54nviker5mE0iIBj(5pvLgOweNmeR7)7dWQlmrdeHLDmbFZqyvJeQ3br2WtDrVWtPxl4uWtr96cs1BdINEbhrZCy2aGwHQPfOwAWhBr4ACZCfYrhZAU8(KeVHSDlzRW3YRktMy6E7zQn2sMntztO45yh9bAchh90DGCUvAWtenWLAoEvf(u98wiplTiB1zAVy(WIRSx1Dyi(vmT92Qz9Cc2lzEcPW68eNAEY9FxCN2UOj6PRKWgPn5jbSL8BEVsBPhXEcPT2s25xe1K4QX8uW9L2tyEskS9K4AWwA7XMyj1VUQWcfCv2KMuqNMhsYUyMN7(a7WrUSDavSZ(MfgWuGsHVfjwLD)0ooWaMq4IcC8U6U3QbvtbsYGLqO4tzR0B9CiduohSy0id2Zw9AVVfzB1ZQ1Rf3u5Up3dX3ZvVr7i1qRN3vXCSCvd8Ed()QcWYhLQ3j)rvO)1UMDz8YjxZgjWZWbUFreIA0(DvwvphqVkWPwwLvYO1SjD1IJXAgXAfpwNglDT1oEp6zDNiBnv7AH98fJ1pDNPtvdBdPP5prYIddGHZi6NA3GwiNueMapzaBHT0aj75zgehAiVCNlSxT36PH4dO0XIMoQDRu2aSPSKpfH9tion1dMYAxCu4JpP3KAJwfC)X13iJUaR9jybaTIAOvLPzdwWCO16WsJZdl5W2x6v7CCxu3bEBKYO3p1TntUz89tSKy8mTalBKBIw4LsYs7LpKC1BQcluckqfg11La0Fud87EO9klQsvLpq6UDCQlOasMk7mvUTm2RC86WwXs7ttZff)QKRUlc1s)bTIJOpNo0YTRuTvevSrUBg9XasOwouogVLw7HuKTnnOucpJRZsjwrrMv8uX3sODMQLEbAVLKsqDkdMKnx5zaG)iV8W4tR7K2R9minj6UDyh08YbLFqR0AVYSHhdp3EfdbQl4KeSN71C90NwX8GT7U2oEL5x1l0C2oA4aqZXAEbcAUYJrU)LyFk3K(zYgPKaAFUcCQwkGpxGdyhREVN8LaiA6zzWtkLAzAUlWaZvjRPHr84Kesu(t(zfuzbgzqTinK54j2LVuh0zDIpXMOYLkVjknDBubeX2C5pwx(ZGQuhTvdbejpAfvOsPKALFNk0RKYSVpL)te8Hcf8wiOpEdC(vsMhiAXSDaGg27r4ZZ94NjPHy9AYkUnK)tr4(9KTttEjUGq9ks4PXyPvGy9KTLLnLkm2YelDL02Wmapy4bf7VnKO0Sm4pOCjLwKi6TMegARZqk)apR79v3aUkaZMeHT0ejobaBZSPZrtDCNAdlAO51Y5mQ9b0YzCJ8KkOepGVX6t6w5jX9d92vWo5PA6hLJCUbCHjzFcmdON5SAACS(uV)DX2h5jH0MR6BecYwZ5U(SuU5lwDlkuZlI3lu1PMZJmaCnB8n7dSFwGpK2LvZcSIb6YIIOehMLLM5fgZFXZkZBy99Tp3iUCrlGgfzvDYqTEhg5Vy1apXxxExsySYLQD0AdaQM10TqvhM5XafjiBjFclxUXrrjWXdtjIwMPwSM)51gaJY4Qgj7kGxXc6U2lOBhqrSFI)uElPaD0f2FtgUgoUKVShsfvMZ(k9ahVnr(uDF6R1vvLDMtnMbwfRGeBsvphFG7F2pJbYdYvWF17Hay(mqQ3LMDC9pl6Y8pZadc5XZykjAklrMFrEASFo7dcEYhWYsNE8J)JWeyOl4Vy)eGv8H)zmeEafZtTmwL9aMZ45FzsnDVcNUYnrvJSyV0bDQEnovLDq0OkMVJovVXgvRpjMbrn68vpP5jV)p(redoNgdWy7(gzS)HtKvdEt1fnAAw2PNuu5ztPru03VvpPR(J6sJ02EZx9K6NPn7wCQk3)rnQI1AYEs1ZkW3cnp59pAGF5TQpSOFlrPNHh6LT7jHPbrVx2Eg3Fg0fvl6NoWILZFtYCyLQNHxOLm9A3DIUbh)Mv6Pv)mJfx8MOBTqv1(qzKefRjvF7OSfV)ZUA6CloAY9ivJUyDx1GSw8hoF51cHFfuXZFT92qZVuDeSHLKXYU(1v0Qpq(WKTx)siwOO2zUnmYONixEp)78TlJK3wDHNhxZ)EbddZ6fjjaoV2LSwtKUlSPRz0P1QMFz5h07oXXpInl5(sGpJQ2a8UWDlvpx59lDDmuwoJW3OhoOV4lW5xDhdmz4DlDz6NYvbZv(L4P85A9V(DSo0TmylvEsAV)jXCG6QVt8qRwohBhFTZiShCN5U7stvtNmV(1w1Qi46ORvUOIxkij6KDNgV6KS8hEMcvpjPJMlzRNc2fU9UPRisewojIZy83gYHdOVlKA3vPPorNTntNX0XJS8ApoCyeoAKjokRrPccSO6lDYGXYXE9IcisEtWKXJZWzSL3CXD3E4GLHwERZibpWEegtCWV9M7VXbbpLP5T2g06oguNiw(dhA5zu40YtO4E3fhomU1h7W9ZN5GwL2otlj9mPeIYlCcIxg7AIzB8AZPJ5lEOzVR5eytzzWNQoCQYPripMaLyP2jkFZD2K1zKL7c2GFQpJagpB7viaMVUJmASpQVZaNryxhV2NkEBbgmHF3kYsN4MVTUplJi1E3a1UqYYqzeQMyHAT5nPTzFA(IaoCa91aCV0lb4WbBp4HZDp3M)PzvvBU)szrTeX1DXeLg57GLJXrxGU2QFLb7qXKuHZMvR7N(Pk4E0Pawfynv3VMyUamys2oakNNpnGKSfSQV4rjzfXiz3R98zPYtPuhL7Y8o3fnYhgVuVHEEzpRmqJ0ZNnBYjYtJl2UEJ1(LRxgl02fR7GCP6TSSNfxOEv8O0vPprFtiU3BMKIFj6O6IRM1UUOh3)n3O09TE70NB8gmykY39UTlE2UjBECeKT4(foJmU3ADs2KPGTK7MnDUbAtdXO5Pjyr(OyXrHjpN(j2fEb(ljqodMrvSr4j6HdjTRGwAe5gC1pw8cmgeDH8quktbd2nArCSq1u6mPpuj9vPDZ1MBms9nLRpI2LJBOWRUpC9buVcCzC31hjPXEP86Xfa81Y0Bjr)Yzow)oFOGjOohAVq1ilInv7qKst8V2)ADi75jZa5gEJqt(wPSsQX3ydR6L5w03nVED0XvXaDckelYtzAr8Vyg4Srd5UrOVIHu9mt99RCXs2B8cL5kogsgfPVIflxCMU0g(ownz6v)vutDIbOoU8S1Si0Q372XJ7oCu74mokkDUv7(LxmXEemCKl0LGqO7w4y(7STLUYhHQFo8yqhBjNKPKaaqTHHgrwusw0)4p58b90jxiClCglwh(VUuScHhtpQ2Zd8nTW442GjxEdlDYySFlpGXZ(0ENooMxRNZhg2EPj)aRTN0sgxLtDIZUXiTxsPLby7HjNKcLTqPPyau)o3zNQB1qdZSfI40spS68WHkS265dX9K1ZjFcjKR(moAPx84panMey8w1u61G0QQFYzsAz5hNM1fX2ROd(QCawx8TO2leJVtlFOz3FHzWcovAEgzw3CCFinaN08FPL2i8nhCjvrwXbsoUnKK1yCWgDUZqaaHizFdqKsZTJgLpwlirn1EDgPxTQtg6ZzaQKZ4bMu00L16jn6uGUdvG6rt8mbNtZTcivOE7DUVZZAOrNx3a7xlGQaA0tJqATQTvaVOWprbzoYwj0j4T9Tkcpf)BkNQfqXB6BdKy0mv9j5tVdhpFOVAz5EZH9sXRH)9bKx6PC1)1TDx6LC2OL0FfMo4Qp1AvL)(1d51dORjnXMR3XArlFhHCrKt6sh(9ko((hF0woG3e86uz8RDGv3APQURtX)6gS6)c]] )

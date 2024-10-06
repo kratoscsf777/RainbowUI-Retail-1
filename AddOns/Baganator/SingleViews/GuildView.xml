@@ -15,19 +15,6 @@
           <Anchor point="TOP" y="-1"/>
         </Anchors>
       </Button>
-      <Button parentKey="SortButton" inherits="BaganatorSortButtonTemplate" frameLevel="700" registerForClicks="LeftButtonUp,RightButtonUp" hidden="true" parentArray="AllFixedButtons">
-        <Anchors>
-          <Anchor point="RIGHT" relativeKey="$parent.CustomiseButton" relativePoint="LEFT"/>
-        </Anchors>
-        <Scripts>
-          <OnClick>
-            self:GetParent():CombineStacksAndSort(button == "RightButton")
-          </OnClick>
-          <OnEnter inherit="append">
-            self.tooltipText = self:GetParent():GetGuildSortMethodName()
-          </OnEnter>
-        </Scripts>
-      </Button>
       <Button parentKey="TransferButton" inherits="BaganatorTransferButtonTemplate" frameLevel="700" parentArray="AllFixedButtons">
         <KeyValues>
           <KeyValue key="tooltipText" value="BAGANATOR_L_TRANSFER_GUILD_VIEW_TOOLTIP_TEXT" type="global"/>
@@ -113,15 +100,33 @@
           </OnClick>
         </Scripts>
       </Button>
-      <Frame parentKey="GuildLive" inherits="BaganatorLiveGuildLayoutTemplate">
+      <Frame parentKey="Container">
         <Anchors>
-          <Anchor point="TOPLEFT" x="13" y="-50"/>
+          <Anchor point="TOPLEFT"/>
         </Anchors>
-      </Frame>
-      <Frame parentKey="GuildCached" inherits="BaganatorCachedGuildLayoutTemplate">
-        <Anchors>
-          <Anchor point="TOPLEFT" x="13" y="-50"/>
-        </Anchors>
+        <Frames>
+          <Frame parentKey="GuildLive" inherits="BaganatorLiveGuildLayoutTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT"/>
+            </Anchors>
+          </Frame>
+          <Frame parentKey="GuildCached" inherits="BaganatorCachedGuildLayoutTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT"/>
+            </Anchors>
+          </Frame>
+
+          <Frame parentKey="GuildUnifiedLive" inherits="BaganatorLiveUnifiedGuildLayoutTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT"/>
+            </Anchors>
+          </Frame>
+          <Frame parentKey="GuildUnifiedCached" inherits="BaganatorCachedUnifiedGuildLayoutTemplate">
+            <Anchors>
+              <Anchor point="TOPLEFT"/>
+            </Anchors>
+          </Frame>
+        </Frames>
       </Frame>
 
       <Frame parentKey="SearchWidget" inherits="BaganatorSearchWidgetTemplate"/>

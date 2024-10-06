@@ -18,6 +18,7 @@ local tempModelFrame = CreateFrame("PlayerModel")
 
 local function portraitOnShow(model3d)
 	IUF:RefreshCamera(model3d)
+
 end
 
 local function portraitOnSizeChanged(portrait)
@@ -260,7 +261,11 @@ function IUF:CreateObjectElements(object)
 		object.pvpTimer:RegisterEvent("PLAYER_FLAGS_CHANGED")
 		object.pvpTimer.OnUpdate = function(self)
 			GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT")
-			GameTooltip:AddLine("남은 시간")
+			if GetLocale()=="koKR" then
+				GameTooltip:AddLine("남은 시간")
+			else
+				GameTooltip:AddLine("Remain ")
+			end
 			GameTooltip:AddLine(SecondsToTime(floor(GetPVPTimer() / 1000)), 1, 1, 1)
 			GameTooltip:Show()
 		end
@@ -529,6 +534,7 @@ local function setupSkinElement(object, element, width, height)
 				elseif element:find("^healthText(%d+)$") or element:find("^powerText(%d+)$") then
 					object[element].combat = object.db[element.."InCombat"]
 					if IUF:HasStatusBarDisplay(skinvalue) then
+
 						object[element].display = skinvalue
 						object[element]:Show()
 					else
