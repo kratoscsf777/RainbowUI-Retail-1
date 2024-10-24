@@ -1,24 +1,36 @@
 # DBM - Dungeons, Delves, & Events
 
-## [r160](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/r160) (2024-10-05)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r158...r160) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
+## [r164](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/r164) (2024-10-20)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r163...r164) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
 
-- Finish izo orb jump timers  
-- add note  
-- Fix soulspirit nameplate timer not being cleared on death for secondary drust soulcleaver mob id  
-    Izo will now special announce when orbs are moving as well. will finish timer work for it soon  
-- Fix and close https://github.com/DeadlyBossMods/DBM-Dungeons/issues/278  
-    Fix speaker shadowcrown not resetting counts on stage 2, causing timers to go wonky (which caused all timer errors in above ticket)  
-    Fix some other misc timers i cought myself.  
-- Update Drahga timers, which were nerfed at some point (undocumented hotfixes?)  
-    tweak warning text/voice for blazing crescendo on forge speakers  
-    Tweak timer and voice for shield stampede in stonevault  
-- Significantly improve mistcaller encounter for players with blue color blindness.  
-     - Added new option (off by default) to show a large red nameplate icon over vulpin for those who have trouble seeing the blue mob on blue ground  
-     - Added a cast bar for patty cake that defaults to a non blue color for users who may have cast bars that are blue leaning (such as quartz by default) that again can be difficult to see on this encounter  
-     - Further emphasized flash on patty cake cast as well  
-     - Patty Cake cooldown timer will now show Interrupt and tank role icons and default to a different color than what freeze tag and dodge ball use.  
-- Misc fixes  
-- Increase emphasis on Avonoxx webs cast for dodging  
-    Added chat bubbles to anubzekts Infest debuff  
-- Fix several timer errors in first two dungeons i ran  
+- Scope all remaining Season 1 dungeons with zone event filters  
+    Dawnbreaker now has initial timers for trash ability nameplates  
+    Fixed a bug in dawnbreaker wehre ensnaring shadows didn't cancel for summoned nightfall shadowmages  
+    Fixed abug in dawnbreaker where Umbrel rush didn't cancel for any nightfall shadowwalkers  
+- City of Threads Update:  
+     - Fixed a bug Null Slam timer object didn't cancel for auras using callback by adding missing creatureId for Hallows Resident  
+     - Moved xeph combat end detection to new zone combat handler, making it more efficient.  
+     - Added initial nameplate timers for all mobs  
+     - Scoped mod event handlers  
+- timer tweak from testing  
+- now that system is working, can start making timer corrections the debug detects :D  
+- fix invalid modId  
+- Preliminary support for initial nameplate timers on pull and stopping nameplate timers on trash wipes for arakara.  
+    also added zone scoping to reduce overhead of mods event handlers running in other dungeons.  
+- increase darkness comes timer. apparently tooltip is a lie  
+- Update koKR (#298)  
+- adjustments for https://github.com/DeadlyBossMods/DBM-Dungeons/issues/300  
+- switch blightbone to the slower repeat scanner since there are reports the instant scanner doesn't always work  
+- remove redundant call  
+- be more aggressive in filtering non combat mobs  
+- fix double registered creatureId in boralus trash  
+- Update localization.ru.lua (#294)  
+- Clarify forge speakers to actually say what you're actually supposed to  do during exhaust vents in both alert and voice packs  
+    also removed exhaust event over event and message as it's mostly a distraction.  
+- Update stonevault timers that changed with this weeks hotfixes  
+- Add missing count. closes https://github.com/DeadlyBossMods/DBM-Dungeons/issues/295  
+- Add hotfixed Id for tank buster on Coaglamation  
+- improve clarity of dark eruption  
+- Upgrade averting shrill to special announce. thought I had done that sooner.  
+- tweak last  
+- Mark Tongue Lashing as frontal ability in Mists of Tirna (#293)  

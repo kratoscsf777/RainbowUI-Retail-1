@@ -1,4 +1,4 @@
-## Changed in v2024.28
+## Changed in v2024.30
 
-* Fix an issue in classic / cataclysm when showing loot windows on popups
+* Add new world bosses in the 20th anniversary celebration
 

@@ -1,7 +1,6 @@
 # CraftSim
 
-## [18.2.9.2](https://github.com/derfloh205/CraftSim/tree/18.2.9.2) (2024-10-05)
-[Full Changelog](https://github.com/derfloh205/CraftSim/compare/18.2.9.1...18.2.9.2) [Previous Releases](https://github.com/derfloh205/CraftSim/releases)
+## [19.0.0.1](https://github.com/derfloh205/CraftSim/tree/19.0.0.1) (2024-10-16)
+[Full Changelog](https://github.com/derfloh205/CraftSim/compare/19.0.0...19.0.0.1) [Previous Releases](https://github.com/derfloh205/CraftSim/releases)
 
-- hotfix v  
-- hotfix 2  
+- reversed finishing reagent optimization order  

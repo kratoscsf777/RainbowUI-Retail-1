@@ -59,6 +59,14 @@ local PGFSettingsTable = {
         visible = true,
     },
     {
+        key = "rioRatingColors",
+        type = "checkbox",
+        title = L["settings.rioRatingColors.title"],
+        tooltip = L["settings.rioRatingColors.tooltip"],
+        image = nil,
+        visible = RaiderIO and true or false,
+    },
+    {
         key = "specIcon",
         type = "checkbox",
         title = L["settings.specIcon.title"],
@@ -95,7 +103,7 @@ local PGFSettingsTable = {
         title = L["settings.missingRoles.title"],
         tooltip = L["settings.missingRoles.tooltip"],
         image = "Interface\\AddOns\\PremadeGroupsFilter\\Textures\\SettingsMissingRoles",
-        visible = true,
+        visible = PGF.SupportsDragonflightUI(),
     },
     {
         type = "header",
@@ -107,6 +115,13 @@ local PGFSettingsTable = {
         type = "checkbox",
         title = L["settings.oneClickSignUp.title"],
         tooltip = L["settings.oneClickSignUp.tooltip"],
+        visible = true,
+    },
+    {
+        key = "cancelOldestApp",
+        type = "checkbox",
+        title = L["settings.cancelOldestApp.title"],
+        tooltip = L["settings.cancelOldestApp.tooltip"],
         visible = true,
     },
     {
@@ -151,6 +166,7 @@ function PGFSettings:OnLoad()
     ScrollUtil.InitScrollBoxListWithScrollBar(self.ScrollBox, self.ScrollBar, view)
 
     local category, layout = Settings.RegisterCanvasLayoutCategory(self, L["addon.name.long"])
+	category.ID = "PremadeGroupsFilter"
     Settings.RegisterAddOnCategory(category)
     PGF.settingsCategory = category
 end
@@ -170,7 +186,7 @@ function PGFSettings.CreateListItem(factory, elementData)
                     elementData.callback(button:GetChecked())
                 end
             end)
-            if elementData.image then
+            if PGF.SupportsDragonflightUI() and elementData.image then
                 item.Image:SetTexture(elementData.image)
             end
         end)

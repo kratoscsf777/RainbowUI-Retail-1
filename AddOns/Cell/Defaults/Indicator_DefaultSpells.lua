@@ -872,6 +872,15 @@ end
 -- targetedSpells
 -------------------------------------------------
 local targetedSpells = {
+    -- Cataclysm -------------------
+    -- 格瑞姆巴托
+    451971, -- 熔岩之拳
+    451224, -- 暗影烈焰笼罩
+    451364, -- 残忍打击
+    451261, -- 大地之箭
+    449444, -- 熔火乱舞
+    450100, -- 碾碎
+
     -- Mists of Pandaria -----------
     -- 青龙寺 - Temple of the Jade Serpent
     106823, -- 翔龙猛袭 - Serpent Strike
@@ -886,18 +895,30 @@ local targetedSpells = {
     192018, -- 光明之盾 - Shield of Light
     196838, -- 血之气息 - Scent of Blood
 
+    -- Battle for Azeroth ----------
+    -- 围攻伯拉勒斯
+    454438, -- 艾泽里特炸药
+    272571, -- 窒息之水
+    257063, -- 盐渍飞弹
+    256709, -- 钢刃之歌
+
     -- Shadowlands -----------------
-    -- Necrotic Wake
+    -- 通灵战潮 - Necrotic Wake
     320788, -- 冻结之缚 - Frozen Binds
     320596, -- 深重呕吐 - Heaving Retch
     338606, -- 病态凝视 - Morbid Fixation
     343556, -- 病态凝视 - Morbid Fixation
+    333479, -- 吐疫
     -- Castle Nathria
     344496, -- 震荡爆发 - Reverberating Eruption
     -- Halls of Atonement
     319941, -- 碎石之跃 - Stone Shattering Leap
     -- Mists of Tirna Scithe
+    323057, -- 灵魂之箭
+    321828, -- 拍手手
     322614, -- 心灵连接 - Mind Link
+    463248, -- 排斥
+    463217, -- 心能挥砍
     -- De Other Side
     320132, -- 暗影之怒 - Shadowfury
     332234, -- 挥发精油 - Essential Oil
@@ -953,6 +974,18 @@ local targetedSpells = {
     -- The War Within --------------
     -- 圣焰隐修院
     424420, -- 余烬冲击
+    -- 艾拉-卡拉，回响之城
+    439506, -- 钻地冲击
+    434786, -- 蛛网箭
+    -- 矶石宝库
+    429545, -- 噤声齿轮
+    424888, -- 震地猛击
+    459210, -- 暗影爪击
+    428711, -- 火成岩锤
+    -- 破晨号
+    431491, -- 污邪斩击
+    451119, -- 深渊轰击
+    431303, -- 暗夜箭
 }
 
 function I.GetDefaultTargetedSpellsList()

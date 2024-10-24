@@ -1,12 +1,10 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r239-release...09860af26fddcb251c12a9b99adb4b375655a654)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r242-release...16402c234159ae4dd8b357e9c30e941dea8d7cea)
 
-- Update bleedList for TWW (#215)
-- Update import
-- Implement backups
-- Change alwaysUpdateAuras
-- Fix auto layout switch
-- Fix aura import/export
-- Fix range check
-- Fix Primordial Wave
-- Update slash (strlower)
-- Update locales
+- Fix wrath power filter
+- Fix indicator revision process
+- Add stack options for custom text indicators
+- Update health text format
+- Update bleed list
+- Update buff tracker events
+- Update range check
+- Revert some GROUP_ROSTER_UPDATE changes

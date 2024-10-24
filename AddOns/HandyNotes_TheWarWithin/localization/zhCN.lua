@@ -59,7 +59,7 @@ L['cendvin_note'] = '在 {location:烬燧荒原} 从精英怪物那里获得900�
 L['options_icons_flat_earthen'] = '{achievement:40606}'
 L['options_icons_flat_earthen_desc'] = '显示 {achievement:40606} 成就中的位置。'
 
-L['tome_of_polymorph_mosswool'] = nil
+L['tome_of_polymorph_mosswool'] = '进入隧道并继续前往 {location:燃火之厅}。\n\n接受来自 {npc:229128} 的 {quest:84438} 获得 {item:227710}。'
 
 L['aradan_note_start'] = '{npc:213428} 可以在 {location:多恩岛} 的 {location:多恩诺嘉尔} 地下城 {location:驭雷栖巢} 中找到。\n\n{note:{npc:213428} 可以在追随者地下城模式下被驯服。}'
 L['aradan_note_step_1'] = '1. 从 {location:多恩岛} 外的深水中收集 {item:220770}。'
@@ -309,6 +309,11 @@ L['options_icons_you_cant_hang_with_us_desc'] = '显示 {achievement:40634} 成�
 L['you_cant_hang_with_us_note'] = '找到一个带有 {spell:434734} 增益效果的 {npc:211816} 并攻击他，会给你 {spell:443190} 负面效果（1分钟）。（{note:不要击杀他！}）会干扰并叠加 {spell:454666} 负面效果在身上。叠加至10层时，将被强制驱逐出城。'
 
 L['kej_pet_vendor_note'] = '每只宠物的库存有限，价格为2,250个 {currency:3056}。\n\n{note:任意商人的每个宠物物品的预计刷新时间为3-4小时。}'
+
+L['options_icons_back_to_the_wall'] = '{achievement:40620}'
+L['options_icons_back_to_the_wall_desc'] = '显示 {achievement:40620} 成就中 {npc:222119} 的位置。'
+L['arathi_prisoner_suffix'] = '已营救阿拉希囚犯'
+L['arathi_prisoner_note'] = '在 {wq:特别任务：些许治愈} 期间释放被蛛网包裹的 {npc:222119}。'
 
 -------------------------------------------------------------------------------
 ----------------------------------- DELVES ------------------------------------

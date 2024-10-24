@@ -1,6 +1,6 @@
 # NoAutoClose
 
-## [v1.2.15](https://github.com/NumyAddon/NoAutoClose/tree/v1.2.15) (2024-09-28)
-[Full Changelog](https://github.com/NumyAddon/NoAutoClose/compare/v1.2.14...v1.2.15) [Previous Releases](https://github.com/NumyAddon/NoAutoClose/releases)
+## [v1.3.1](https://github.com/NumyAddon/NoAutoClose/tree/v1.3.1) (2024-10-23)
+[Full Changelog](https://github.com/NumyAddon/NoAutoClose/compare/v1.3.0...v1.3.1) [Previous Releases](https://github.com/NumyAddon/NoAutoClose/releases)
 
-- Classic TOC Bump  
+- TOC Bump  

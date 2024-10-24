@@ -1,6 +1,6 @@
 # Syndicator
 
-## [125](https://github.com/Baganator/Syndicator/tree/125) (2024-09-25)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/124...125) 
+## [127](https://github.com/Baganator/Syndicator/tree/127) (2024-10-23)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/126...127) 
 
-- Vanilla Classic: Update toc for 1.15.4  
+- Update toc for 11.0.5  

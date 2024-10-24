@@ -126,6 +126,12 @@ GTFO.SpellID["449770"] = {
   sound = 1;
 };
 
+GTFO.SpellID["458799"] = {
+  --desc = "Overcharged Earth (Kordac)";
+  ignoreApplication = true;
+  sound = 1;
+};
+
 --- ****************************
 --- * Ara-Kara, City of Echoes *
 --- ****************************
@@ -597,6 +603,22 @@ GTFO.SpellID["414523"] = {
   sound = 1;
 };
 
+GTFO.SpellID["452041"] = {
+  --desc = "Grimweave Orb (Ascended Webfriar)";
+  sound = 1;
+};
+
+GTFO.SpellID["440939"] = {
+  --desc = "Frost Grip (Researcher Xik'vik)";
+  sound = 1;
+};
+
+GTFO.SpellID["453152"] = {
+  --desc = "Gossamer Webbing (Web Marauder)";
+  sound = 1;
+};
+
+
 --- *******************
 --- * Nerub-ar Palace *
 --- *******************
@@ -716,6 +738,11 @@ GTFO.SpellID["443403"] = {
   sound = 1;
 };
 
+GTFO.SpellID["441958"] = {
+  --desc = "Grasping Silk (Queen Ansurek)";
+  sound = 1;
+};
+
 GTFO.SpellID["445818"] = {
   --desc = "Frothing Gluttony (Queen Ansurek)";
   applicationOnly = true;
@@ -727,5 +754,71 @@ GTFO.SpellID["462252"] = {
   sound = 1;
 };
 
+GTFO.SpellID["446253"] = {
+  --desc = "Slime Trail (Congealed Mass)";
+  sound = 1;
+};
+
+--- ***************************
+--- * Blackrock Depths (Raid) *
+--- ***************************
+
+GTFO.SpellID["462352"] = {
+  --desc = "Roiling Magma (Eruption)";
+  sound = 1;
+};
+
+GTFO.SpellID["463492"] = {
+  --desc = "Firewall (Lord Incendius)";
+  ignoreApplication = true;
+  sound = 1;
+};
+
+GTFO.SpellID["470484"] = {
+  --desc = "Designed Disaster (Fineous Darkvire)";
+  ignoreApplication = true;
+  sound = 1;
+};
+
+GTFO.SpellID["464473"] = {
+  --desc = "Chemical Pool (Chemical Bomb)";
+  ignoreApplication = true;
+  sound = 1;
+};
+
+GTFO.SpellID["463822"] = {
+  --desc = "Flamethrower (Prototype Fire Golem)";
+  sound = 1;
+  negatingDebuffSpellID = 467918; -- Poison-Soaked
+  tankSound = 0;
+};
+
+GTFO.SpellID["463849"] = {
+  --desc = "Lethal Attraction (Electron Mk. II)";
+  sound = 4;
+};
+
+GTFO.SpellID["464339"] = {
+  --desc = "Blizzard (Seeth'rel)";
+  ignoreApplication = true;
+  sound = 1;
+};
+
+GTFO.SpellID["464350"] = {
+  --desc = "Bladestorm (Anger'rel)";
+  sound = 2;
+  tankSound = 0;
+};
+
+GTFO.SpellID["466382"] = {
+  --desc = "Volcanic Stone (Avatar of Ragnaros)";
+  ignoreApplication = true;
+  sound = 1;
+};
+
+
+
+
 end
+
 

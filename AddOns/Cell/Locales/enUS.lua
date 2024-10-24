@@ -89,6 +89,29 @@ select(2, ...).L = setmetatable({
         <p>(Retail) Enable "Always Update Auras" in General tab, if indicators do not update correctly.</p>
         <br/>
 
+        <h1>r243-release (Oct 13, 2024, 21:37 GMT+8)</h1>
+        <p>* Fixed power filters for Wrath(CN).</p>
+        <p>* Fixed indicator revision process.</p>
+        <p>+ Added stack options for custom text indicators.</p>
+        <p>* Updated health text format option.</p>
+        <p>* Updated bleed list.</p>
+        <p>* Reverted some changes.</p>
+        <br/>
+
+        <h1>r242-release (Oct 9, 2024, 10:30 GMT+8)</h1>
+        <p>* Fixed for Classic.</p>
+        <p>* Updated deDE, esES, zhTW.</p>
+        <br/>
+
+        <h1>r241-release (Oct 8, 2024, 18:25 GMT+8)</h1>
+        <p>+ Implemented Nickname Blacklist and a hardcoded bad words list.</p>
+        <p>* Fixed Cell.GetUnitFramesForLGF.</p>
+        <p>* Fixed Power Text.</p>
+        <p>* Changed Gradient Color related options.</p>
+        <p>* Updated raid debuffs.</p>
+        <p>* Updated locales. Added esES (thanks Zurent!).</p>
+        <br/>
+
         <h1>r240-release (Sep 9, 2024, 19:00 GMT+8)</h1>
         <p>* Updated bleedList for TWW (PR #215).</p>
         <p>+ Implemented Backups.</p>
